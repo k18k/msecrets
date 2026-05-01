@@ -15,5 +15,5 @@ export default defineConfig({
   exports: {},
   format: ["cjs", "esm"],
   dts: true,
-  deps: { skipNodeModulesBundle: true },
+  deps: { onlyBundle: ["zod", "openpgp"] },
 });

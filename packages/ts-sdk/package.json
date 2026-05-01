@@ -41,8 +41,5 @@
   "engineStrict": true,
   "devDependencies": {
     "@msecrets/core": "*"
-  },
-  "inlinedDependencies": {
-    "zod": "3.25.76"
   }
 }
