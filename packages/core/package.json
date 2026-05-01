@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/core",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Core cryptographic primitives and shared logic for msecrets",
   "keywords": [
     "encryption",
