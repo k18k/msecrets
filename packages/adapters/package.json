@@ -1,0 +1,47 @@
+{
+  "name": "@msecrets/adapters",
+  "version": "2.0.1",
+  "description": "Runtime decryption adapters for msecrets (GPG, Docker Secrets, raw OpenPGP keys)",
+  "keywords": [
+    "adapter",
+    "encryption",
+    "openpgp",
+    "secrets",
+    "secrets-management"
+  ],
+  "license": "MIT",
+  "author": "Krystian Mikołajczyk",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    "./docker-secrets": {
+      "import": "./dist/docker-secrets.mjs",
+      "require": "./dist/docker-secrets.cjs"
+    },
+    "./gpg": {
+      "import": "./dist/gpg.mjs",
+      "require": "./dist/gpg.cjs"
+    },
+    "./raw-pks": {
+      "import": "./dist/raw-pks.mjs",
+      "require": "./dist/raw-pks.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "openpgp": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "engineStrict": true
+}

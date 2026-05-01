@@ -1,0 +1,48 @@
+{
+  "name": "@msecrets/ts-sdk",
+  "version": "2.0.1",
+  "description": "TypeScript SDK for runtime secret decryption with msecrets",
+  "keywords": [
+    "encryption",
+    "openpgp",
+    "sdk",
+    "secrets",
+    "secrets-management"
+  ],
+  "license": "MIT",
+  "author": "Krystian Mikołajczyk",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.cts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "node --watch --test e2e.test.ts",
+    "test": "node --test --test-timeout=60000 release-workflow.test.ts",
+    "test:e2e": "node --test --test-timeout=60000 e2e.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsdown"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "engineStrict": true,
+  "devDependencies": {
+    "@msecrets/core": "*"
+  },
+  "inlinedDependencies": {
+    "zod": "3.25.76"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "strict": true,
+    "allowImportingTsExtensions": true,
+    "target": "esnext",
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
+  }
+}

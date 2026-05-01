@@ -1,0 +1,65 @@
+{
+  "name": "@msecrets/ui",
+  "version": "2.0.1",
+  "private": false,
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "@msecrets/ui": "./dist/start.mjs"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./dist/start.mjs",
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "dev": "node --watch --watch-path=server ./server/dev.ts ../examples/.env.ms.json",
+    "start": "node ./server/start.ts ../examples/.env.ms.json",
+    "build": "npm run server:build && npm run client:build",
+    "client:build": "vite build",
+    "server:build": "tsdown",
+    "test:e2e": "node --test --test-timeout=90000 e2e.test.ts"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@msecrets/core": "*",
+    "@mantine/core": "9.0.0",
+    "@mantine/hooks": "9.0.0",
+    "@orpc/client": "^1.14.0",
+    "@orpc/server": "^1.14.0",
+    "@orpc/tanstack-query": "^1.14.0",
+    "@tabler/icons-react": "^3.41.1",
+    "@tanstack/react-query": "^5.100.6",
+    "@tanstack/react-router": "^1.169.0",
+    "@tanstack/router-plugin": "^1.167.30",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "isbot": "^5.1.37",
+    "postcss": "^8.5.8",
+    "postcss-preset-mantine": "1.18.0",
+    "postcss-simple-vars": "^7.0.1",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "typescript": "6.0.2",
+    "vite": "^8.0.10"
+  },
+  "inlinedDependencies": {
+    "@orpc/client": "1.14.0",
+    "@orpc/contract": "1.14.0",
+    "@orpc/interop": "1.14.0",
+    "@orpc/server": "1.14.0",
+    "@orpc/shared": "1.14.0",
+    "@orpc/standard-server": "1.14.0",
+    "@orpc/standard-server-fetch": "1.14.0",
+    "@orpc/standard-server-node": "1.14.0",
+    "openpgp": "6.3.0",
+    "radash": "12.1.1",
+    "zod": "3.25.76"
+  }
+}

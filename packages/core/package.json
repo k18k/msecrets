@@ -1,0 +1,75 @@
+{
+  "name": "@msecrets/core",
+  "version": "2.0.1",
+  "description": "Core cryptographic primitives and shared logic for msecrets",
+  "keywords": [
+    "encryption",
+    "git",
+    "openpgp",
+    "secrets",
+    "secrets-management"
+  ],
+  "license": "MIT",
+  "author": "Krystian Mikołajczyk",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "imports": {
+    "#ms/*": "./src/*"
+  },
+  "exports": {
+    "./crypto": {
+      "import": "./dist/crypto.mjs",
+      "require": "./dist/crypto.cjs"
+    },
+    "./key-material": {
+      "import": "./dist/key-material.mjs",
+      "require": "./dist/key-material.cjs"
+    },
+    "./providers": {
+      "import": "./dist/providers.mjs",
+      "require": "./dist/providers.cjs"
+    },
+    "./runtime": {
+      "import": "./dist/runtime.mjs",
+      "require": "./dist/runtime.cjs"
+    },
+    "./secret-helpers": {
+      "import": "./dist/secret-helpers.mjs",
+      "require": "./dist/secret-helpers.cjs"
+    },
+    "./secrets-file": {
+      "import": "./dist/secrets-file.mjs",
+      "require": "./dist/secrets-file.cjs"
+    },
+    "./types": {
+      "import": "./dist/types.mjs",
+      "require": "./dist/types.cjs"
+    },
+    "./validation": {
+      "import": "./dist/validation.mjs",
+      "require": "./dist/validation.cjs"
+    },
+    "./workflows": {
+      "import": "./dist/workflows.mjs",
+      "require": "./dist/workflows.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "build": "tsdown"
+  },
+  "devDependencies": {
+    "openpgp": "^6.2.2",
+    "zod": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "engineStrict": true
+}

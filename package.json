@@ -1,0 +1,26 @@
+{
+  "name": "msecrets-monorepo",
+  "version": "2.0.0",
+  "private": true,
+  "packageManager": "npm@11.8.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "format": "oxfmt . && oxlint --fix",
+    "build": "turbo build",
+    "test": "node --test --test-timeout=60000 packages/**/*.test.ts",
+    "test:e2e": "npm --workspace msecrets run test:e2e && npm --workspace @msecrets/ts-sdk run test:e2e && npm --workspace @msecrets/ui run test:e2e",
+    "pack:dry-run": "npm pack --dry-run --workspace @msecrets/core --workspace @msecrets/adapters --workspace @msecrets/ts-sdk --workspace msecrets --workspace @msecrets/ui",
+    "verify:release": "npm run build && npm run test && npm run test:e2e && npm run pack:dry-run"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "oxfmt": "0.47.0",
+    "oxlint": "1.62.0",
+    "tsdown": "0.21.10",
+    "typescript": "6.0.2",
+    "turbo": "^2.9.7"
+  }
+}
