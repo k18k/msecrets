@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/adapters",
-  "version": "2.0.2",
+  "version": "0.1.0",
   "description": "Runtime decryption adapters for msecrets (GPG, Docker Secrets, raw OpenPGP keys)",
   "keywords": [
     "adapter",

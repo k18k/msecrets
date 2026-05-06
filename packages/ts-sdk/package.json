@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/ts-sdk",
-  "version": "2.0.2",
+  "version": "0.1.0",
   "description": "TypeScript SDK for runtime secret decryption with msecrets",
   "keywords": [
     "encryption",

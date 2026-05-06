@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/cli",
-  "version": "2.0.2",
+  "version": "0.1.0",
   "description": "CLI for managing repository-native encrypted secrets with PGP encryption.",
   "keywords": [
     "cli",
