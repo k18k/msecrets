@@ -63,8 +63,6 @@
     "@orpc/standard-server": "1.14.0",
     "@orpc/standard-server-fetch": "1.14.0",
     "@orpc/standard-server-node": "1.14.0",
-    "openpgp": "6.3.0",
-    "radash": "12.1.1",
-    "zod": "4.4.1"
+    "radash": "12.1.1"
   }
 }
