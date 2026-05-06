@@ -2,6 +2,8 @@
 
 msecrets is a repository-native encrypted secrets system.
 
+Documentation: https://k18k.github.io/msecrets/
+
 This monorepo ships publishable npm packages for:
 
 - authoring via CLI
@@ -42,6 +44,12 @@ npm install
 npm run build
 npm run test
 npm run test:e2e
+```
+
+Preview the GitHub Pages docs locally:
+
+```bash
+npm --workspace @msecrets/docs run preview
 ```
 
 ## Publish Readiness

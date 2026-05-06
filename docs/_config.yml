@@ -1,0 +1,6 @@
+title: msecrets
+description: Repository-native encrypted secrets.
+url: https://k18k.github.io
+baseurl: /msecrets
+markdown: kramdown
+permalink: pretty

@@ -6,6 +6,7 @@
     "url": "https://github.com/k18k/msecrets"
   },
   "workspaces": [
+    "docs",
     "packages/*"
   ],
   "type": "module",

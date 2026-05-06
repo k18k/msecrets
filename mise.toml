@@ -1,2 +1,6 @@
 [tools]
 node = "25.6.0"
+ruby = "3.3.7"
+
+[settings]
+ruby.compile = false
