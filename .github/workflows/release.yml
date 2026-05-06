@@ -1,10 +1,10 @@
-name: Release UI
+name: Release Packages
 
 on:
   workflow_dispatch:
 
 jobs:
-  release-ui:
+  release:
     runs-on: ubuntu-latest
 
     permissions:
@@ -21,6 +21,10 @@ jobs:
 
       - run: npm ci
 
-      - run: npm run build
+      - run: npm run verify:release
 
-      - run: npm publish --workspace @msecrets/ui --access public
+      - run: npm publish --workspace @msecrets/ts-sdk --access public --provenance
+
+      - run: npm publish --workspace @msecrets/cli --access public --provenance
+
+      - run: npm publish --workspace @msecrets/ui --access public --provenance
