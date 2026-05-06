@@ -13,15 +13,33 @@
   "scripts": {
     "format": "oxfmt . && oxlint --fix",
     "build": "turbo build",
-    "test": "turbo test"
+    "test": "turbo test",
+    "coverage": "c8 npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "@types/node": "25.6.0",
+    "c8": "^11.0.0",
     "oxfmt": "0.47.0",
     "oxlint": "1.62.0",
     "tsdown": "0.21.10",
     "turbo": "^2.9.7",
     "typescript": "6.0.2"
   },
-  "packageManager": "npm@11.8.0"
+  "packageManager": "npm@11.8.0",
+  "c8": {
+    "all": true,
+    "reporter": [
+      "json-summary"
+    ],
+    "include": [
+      "packages/**/*.ts"
+    ],
+    "exclude": [
+      "**/*.test.ts",
+      "**/dist/**",
+      "**/node_modules/**",
+      "**/routeTree.gen.ts",
+      "packages/ui/**/*"
+    ]
+  }
 }

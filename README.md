@@ -1,5 +1,9 @@
 # msecrets Monorepo
 
+[![Build](https://img.shields.io/github/actions/workflow/status/k18k/msecrets/build.yml?branch=master&label=build)](https://github.com/k18k/msecrets/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/k18k/msecrets/test.yml?branch=master&label=tests)](https://github.com/k18k/msecrets/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k18k/msecrets/master/.github/badges/coverage.json)](https://github.com/k18k/msecrets/actions/workflows/coverage.yml)
+
 msecrets is a repository-native encrypted secrets system.
 
 Documentation: https://k18k.github.io/msecrets/

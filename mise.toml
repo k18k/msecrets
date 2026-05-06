@@ -1,4 +1,5 @@
 [tools]
+act = "latest"
 node = "25.6.0"
 ruby = "3.3.7"
 
