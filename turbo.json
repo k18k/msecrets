@@ -3,11 +3,27 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "src/**"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
-    "publish": {
-      "dependsOn": ["^publish"]
-    }
+    "test": {
+      "dependsOn": [
+        "build",
+        "^test"
+      ],
+      "outputs": [],
+      "inputs": [
+        "**/*",
+        "!.turbo/**",
+        "!node_modules/**"
+      ]
+    },
   }
 }

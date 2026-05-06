@@ -42,8 +42,7 @@
   },
   "scripts": {
     "dev": "node --watch --test e2e.test.ts",
-    "test": "node --test --test-timeout=60000 release-workflow.test.ts",
-    "test:e2e": "node --test --test-timeout=60000 e2e.test.ts",
+    "test": "node --test --test-timeout=60000 **/*.test.ts",
     "typecheck": "tsc -p tsconfig.json",
     "build": "tsdown"
   },

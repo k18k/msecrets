@@ -13,10 +13,7 @@
   "scripts": {
     "format": "oxfmt . && oxlint --fix",
     "build": "turbo build",
-    "test": "node --test --test-timeout=60000 packages/**/*.test.ts",
-    "test:e2e": "npm --workspace msecrets run test:e2e && npm --workspace @msecrets/ts-sdk run test:e2e && npm --workspace @msecrets/ui run test:e2e",
-    "pack:dry-run": "npm pack --dry-run --workspace @msecrets/ts-sdk --workspace @msecrets/cli --workspace @msecrets/ui",
-    "verify:release": "npm run build && npm run test && npm run test:e2e && npm run pack:dry-run"
+    "test": "turbo test"
   },
   "devDependencies": {
     "@types/node": "25.6.0",

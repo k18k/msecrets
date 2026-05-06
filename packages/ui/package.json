@@ -27,7 +27,7 @@
     "build": "npm run server:build && npm run client:build",
     "client:build": "vite build",
     "server:build": "tsdown",
-    "test:e2e": "node --test --test-timeout=90000 e2e.test.ts"
+    "test": "node --test --test-timeout=90000 **/*.test.ts"
   },
   "devDependencies": {
     "@mantine/core": "9.0.0",

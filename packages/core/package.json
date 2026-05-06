@@ -72,7 +72,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "build": "tsdown"
+    "build": "tsdown",
+    "test": "node --test --test-timeout=60000 **/*.test.ts"
   },
   "devDependencies": {
     "openpgp": "^6.2.2",

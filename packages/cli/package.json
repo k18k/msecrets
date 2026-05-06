@@ -31,7 +31,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "test:e2e": "node --test --test-timeout=60000 e2e.test.ts"
+    "test": "node --test --test-timeout=60000 **/*.test.ts"
   },
   "devDependencies": {
     "@msecrets/core": "*",

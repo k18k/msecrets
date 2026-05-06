@@ -51,20 +51,6 @@ Preview the GitHub Pages docs locally:
 npm --workspace @msecrets/docs run preview
 ```
 
-## Publish Readiness
-
-Run the full release check (without publishing):
-
-```bash
-npm run verify:release
-```
-
-This includes:
-
-- workspace build
-- tests + e2e smoke
-- `npm pack --dry-run` for all publishable packages
-
 ## UI Binary Usage
 
 The UI no longer relies on `SECRETS_FILE` env.
