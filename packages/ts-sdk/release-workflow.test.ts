@@ -6,17 +6,17 @@ import { test } from "node:test";
 
 import * as openpgp from "openpgp";
 
-import { getSecretsFile } from "@msecrets/core/secrets-file";
-import type { WorkflowKeyAccess } from "@msecrets/core/workflows";
+import { getSecretsFile } from "../core/src/secrets-file.ts";
+import type { WorkflowKeyAccess } from "../core/src/workflows.ts";
 import {
   createSecret,
   importConfiguredKey,
   initializeSecretsFile,
   revokeSecretValue,
   shareSecretValue,
-} from "@msecrets/core/workflows";
+} from "../core/src/workflows.ts";
 
-import { rawPKs } from "@msecrets/adapters/raw-pks";
+import { rawPKs } from "./adapters/raw-pks.ts";
 
 import { MSecrets } from "./index.ts";
 

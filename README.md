@@ -9,14 +9,13 @@ This monorepo ships publishable npm packages for:
 - authoring via CLI
 - runtime decryption via SDK + adapters
 - local UI editing/inspection
-- shared OpenPGP-native core workflows
+- shared OpenPGP-native core workflows bundled into the publishable packages
 
 ## Packages
 
 - `@msecrets/cli` (CLI): interactive authoring and UI launcher
-- `@msecrets/core`: file contract, validation, workflows, crypto
-- `@msecrets/ts-sdk`: runtime secret reader/decryptor
-- `@msecrets/adapters`: runtime decryption adapters
+- `@msecrets/core` (private): file contract, validation, workflows, crypto
+- `@msecrets/ts-sdk`: runtime secret reader/decryptor and adapter exports
 - `@msecrets/ui`: local UI runtime binary
 
 ## File Contract

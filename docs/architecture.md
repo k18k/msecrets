@@ -44,8 +44,8 @@ hero_shell: |-
     <p>Runtime TypeScript client that validates the secrets file and asks adapters to decrypt values.</p>
   </article>
   <article class="card red">
-    <h3><code>@msecrets/adapters</code></h3>
-    <p>Stateless providers for private key access, including raw OpenPGP keys, Docker secrets, and local GPG-backed decryption.</p>
+    <h3><code>@msecrets/ts-sdk/adapters/*</code></h3>
+    <p>Public stateless providers for private key access, bundled from core and exported by the SDK.</p>
   </article>
   <article class="card">
     <h3><code>@msecrets/ui</code></h3>

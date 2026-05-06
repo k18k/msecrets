@@ -2,6 +2,9 @@ import { defineConfig } from "tsdown/config";
 
 export default defineConfig({
   entry: {
+    "adapters/docker-secrets": "./src/adapters/docker-secrets.ts",
+    "adapters/gpg": "./src/adapters/gpg.ts",
+    "adapters/raw-pks": "./src/adapters/raw-pks.ts",
     crypto: "./src/crypto.ts",
     "key-material": "./src/key-material.ts",
     runtime: "./src/runtime.ts",

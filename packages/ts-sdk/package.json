@@ -23,6 +23,18 @@
       "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     },
+    "./adapters/docker-secrets": {
+      "import": "./dist/adapters/docker-secrets.mjs",
+      "require": "./dist/adapters/docker-secrets.cjs"
+    },
+    "./adapters/gpg": {
+      "import": "./dist/adapters/gpg.mjs",
+      "require": "./dist/adapters/gpg.cjs"
+    },
+    "./adapters/raw-pks": {
+      "import": "./dist/adapters/raw-pks.mjs",
+      "require": "./dist/adapters/raw-pks.cjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -41,5 +53,9 @@
   "engines": {
     "node": ">=24"
   },
-  "engineStrict": true
+  "engineStrict": true,
+  "inlinedDependencies": {
+    "openpgp": "6.3.0",
+    "zod": "4.4.1"
+  }
 }

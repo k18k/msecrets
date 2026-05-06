@@ -9,9 +9,6 @@
     },
     {
       "path": "./packages/ts-sdk/tsconfig.json"
-    },
-    {
-      "path": "./packages/adapters/tsconfig.json"
     }
   ]
 }

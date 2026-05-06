@@ -7,7 +7,7 @@ lead: Applications read the committed secrets file with @msecrets/ts-sdk and dec
 permalink: /runtime/
 hero_shell: |-
   import { MSecrets } from "@msecrets/ts-sdk";
-  import { rawPKs } from "@msecrets/adapters/raw-pks";
+  import { rawPKs } from "@msecrets/ts-sdk/adapters/raw-pks";
 
   const client = new MSecrets({ mode, secrets, adapters });
   const password = await client.get("DB_PASSWORD");
@@ -16,15 +16,15 @@ hero_shell: |-
 ## Install
 
 ```bash
-npm install @msecrets/ts-sdk @msecrets/adapters
+npm install @msecrets/ts-sdk
 ```
 
 ## Recommended path
 
-Prefer `@msecrets/adapters/raw-pks` for OpenPGP-native runtime decryption without coupling the application to a local GPG keyring.
+Prefer `@msecrets/ts-sdk/adapters/raw-pks` for OpenPGP-native runtime decryption without coupling the application to a local GPG keyring.
 
 ```ts
-import { rawPKs } from "@msecrets/adapters/raw-pks";
+import { rawPKs } from "@msecrets/ts-sdk/adapters/raw-pks";
 import { MSecrets } from "@msecrets/ts-sdk";
 import secrets from "./.env.ms.json" with { type: "json" };
 
@@ -83,8 +83,8 @@ const password = await client.get("DB_PASSWORD");
 
 ## Adapters
 
-- `@msecrets/adapters/raw-pks`: raw armored private keys.
-- `@msecrets/adapters/docker-secrets`: private key material from Docker secrets.
-- `@msecrets/adapters/gpg`: local GPG-backed decryption when that is appropriate.
+- `@msecrets/ts-sdk/adapters/raw-pks`: raw armored private keys.
+- `@msecrets/ts-sdk/adapters/docker-secrets`: private key material from Docker secrets.
+- `@msecrets/ts-sdk/adapters/gpg`: local GPG-backed decryption when that is appropriate.
 
 > Adapters are stateless, do not mutate global state, and return plaintext only. The SDK owns runtime selection and validation.

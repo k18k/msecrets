@@ -48,6 +48,10 @@ function findOpenPort(): Promise<number> {
   });
 }
 
+function isLoopbackBindDenied(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "EPERM";
+}
+
 function waitForOutput(
   stream: { value: string },
   predicate: (value: string) => boolean,
@@ -104,10 +108,20 @@ test("cli package entrypoint creates a versioned secrets file", { timeout: 10_00
 test(
   "cli ui command launches local ui endpoint without auto-build",
   { skip: !existsSync(resolve(repoRoot, "packages/ui/dist/client/index.html")), timeout: 30_000 },
-  async () => {
+  async (t) => {
     const workdir = mkdtempSync(join(tmpdir(), "msecrets-cli-ui-test-"));
     const configPath = join(workdir, "secrets.ms.json");
-    const preferredPort = await findOpenPort();
+    let preferredPort: number;
+    try {
+      preferredPort = await findOpenPort();
+    } catch (error) {
+      if (isLoopbackBindDenied(error)) {
+        t.skip("127.0.0.1 binding is not permitted in this environment");
+        return;
+      }
+
+      throw error;
+    }
     const output = { value: "" };
 
     writeFileSync(

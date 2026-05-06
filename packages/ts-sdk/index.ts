@@ -1,8 +1,8 @@
-import { assertValidSecretsFile } from "@msecrets/core/validation";
-import type { MSecretsAdapter } from "@msecrets/core/runtime";
-import type { SecretsFile } from "@msecrets/core/types";
+import type { MSecretsAdapter } from "../core/src/runtime.ts";
+import type { SecretsFile } from "../core/src/types.ts";
+import { assertValidSecretsFile } from "../core/src/validation.ts";
 
-export type { MSecretsAdapter, MSecretsAdapterContext } from "@msecrets/core/runtime";
+export type { MSecretsAdapter, MSecretsAdapterContext } from "../core/src/runtime.ts";
 
 export type MSecretsConfig = {
   secrets: SecretsFile;

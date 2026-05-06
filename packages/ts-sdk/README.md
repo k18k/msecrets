@@ -10,17 +10,16 @@ stateless adapters to decrypt each value.
 ## Install
 
 ```bash
-npm install @msecrets/ts-sdk @msecrets/adapters
+npm install @msecrets/ts-sdk
 ```
 
-The SDK bundles the small core runtime code it needs. Install
-`@msecrets/adapters` when you want the official adapters for raw OpenPGP private
-keys, Docker secrets, or local GPG-backed decryption.
+The SDK accepts stateless adapters. Official adapters ship with the SDK for raw
+OpenPGP private keys, Docker secrets, or local GPG-backed decryption.
 
 ## Quick Start
 
 ```ts
-import { rawPKs } from "@msecrets/adapters/raw-pks";
+import { rawPKs } from "@msecrets/ts-sdk/adapters/raw-pks";
 import { MSecrets } from "@msecrets/ts-sdk";
 import secrets from "./.env.ms.json" with { type: "json" };
 
@@ -45,7 +44,7 @@ const password = await client.get("DB_PASSWORD");
 CommonJS applications can load the same committed file with `require`:
 
 ```js
-const { rawPKs } = require("@msecrets/adapters/raw-pks");
+const { rawPKs } = require("@msecrets/ts-sdk/adapters/raw-pks");
 const { MSecrets } = require("@msecrets/ts-sdk");
 const secrets = require("./.env.ms.json");
 ```

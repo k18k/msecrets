@@ -29,7 +29,7 @@ Monorepo structure:
 - `packages/ts-sdk`
   - Runtime consumption layer
   - Adapter-based decryption client
-- `packages/adapters`
+- `packages/core/src/adapters`
   - Runtime decryption providers (gpg, docker secrets, raw OpenPGP private keys)
 - `packages/ui`
   - Dashboard launched through `msecrets ui`

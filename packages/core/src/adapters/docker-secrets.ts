@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import type { MSecretsAdapter } from "@msecrets/core/runtime";
+import type { MSecretsAdapter } from "../runtime.ts";
 
 import { cleanupDir, createTempGpgHome, decryptWithGpg, importPrivateKey } from "./shared.ts";
 

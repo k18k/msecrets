@@ -47,6 +47,10 @@ function findOpenPort(): Promise<number> {
   });
 }
 
+function isLoopbackBindDenied(error: unknown): boolean {
+  return error instanceof Error && "code" in error && error.code === "EPERM";
+}
+
 function waitForOutput(
   stream: { value: string },
   predicate: (value: string) => boolean,
@@ -106,10 +110,20 @@ function getHttps(pathname: string, port: number): Promise<{ body: string; statu
 test(
   "ui server uses first positional config arg and binds to 127.0.0.1",
   { skip: !existsSync(builtClientIndex), timeout: 30_000 },
-  async () => {
+  async (t) => {
     const tempDir = mkdtempSync(join(tmpdir(), "msecrets-ui-e2e-"));
     const configPath = join(tempDir, "secrets.ms.json");
-    const port = await findOpenPort();
+    let port: number;
+    try {
+      port = await findOpenPort();
+    } catch (error) {
+      if (isLoopbackBindDenied(error)) {
+        t.skip("127.0.0.1 binding is not permitted in this environment");
+        return;
+      }
+
+      throw error;
+    }
     const output = { value: "" };
 
     writeFileSync(

@@ -9,6 +9,7 @@ Core workflows and contracts for msecrets.
 - schema validation and compatibility checks
 - workflow operations for keys/environments/secrets
 - runtime adapter contracts
+- internal runtime adapter implementations exported publicly through `@msecrets/ts-sdk/adapters/*`
 
 ## Secrets File Compatibility
 

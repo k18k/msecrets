@@ -3,7 +3,7 @@ import assert from "node:assert";
 
 import * as openpgp from "openpgp";
 
-import { rawPKs } from "@msecrets/adapters/raw-pks";
+import { rawPKs } from "./adapters/raw-pks.ts";
 
 import { MSecrets } from "./index.ts";
 

@@ -1,4 +1,4 @@
-import type { MSecretsAdapter } from "@msecrets/core/runtime";
+import type { MSecretsAdapter } from "../runtime.ts";
 
 import { decryptWithGpg } from "./shared.ts";
 

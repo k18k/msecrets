@@ -1,6 +1,7 @@
 {
   "name": "@msecrets/core",
   "version": "3.0.0",
+  "private": true,
   "description": "Core cryptographic primitives and shared logic for msecrets",
   "keywords": [
     "encryption",
@@ -19,46 +20,55 @@
     "#ms/*": "./src/*"
   },
   "exports": {
+    "./adapters/docker-secrets": {
+      "import": "./src/adapters/docker-secrets.ts",
+      "require": "./src/adapters/docker-secrets.ts"
+    },
+    "./adapters/gpg": {
+      "import": "./src/adapters/gpg.ts",
+      "require": "./src/adapters/gpg.ts"
+    },
+    "./adapters/raw-pks": {
+      "import": "./src/adapters/raw-pks.ts",
+      "require": "./src/adapters/raw-pks.ts"
+    },
     "./crypto": {
-      "import": "./dist/crypto.mjs",
-      "require": "./dist/crypto.cjs"
+      "import": "./src/crypto.ts",
+      "require": "./src/crypto.ts"
     },
     "./key-material": {
-      "import": "./dist/key-material.mjs",
-      "require": "./dist/key-material.cjs"
+      "import": "./src/key-material.ts",
+      "require": "./src/key-material.ts"
     },
     "./providers": {
-      "import": "./dist/providers.mjs",
-      "require": "./dist/providers.cjs"
+      "import": "./src/providers/index.ts",
+      "require": "./src/providers/index.ts"
     },
     "./runtime": {
-      "import": "./dist/runtime.mjs",
-      "require": "./dist/runtime.cjs"
+      "import": "./src/runtime.ts",
+      "require": "./src/runtime.ts"
     },
     "./secret-helpers": {
-      "import": "./dist/secret-helpers.mjs",
-      "require": "./dist/secret-helpers.cjs"
+      "import": "./src/secret-helpers.ts",
+      "require": "./src/secret-helpers.ts"
     },
     "./secrets-file": {
-      "import": "./dist/secrets-file.mjs",
-      "require": "./dist/secrets-file.cjs"
+      "import": "./src/secrets-file.ts",
+      "require": "./src/secrets-file.ts"
     },
     "./types": {
-      "import": "./dist/types.mjs",
-      "require": "./dist/types.cjs"
+      "import": "./src/types.ts",
+      "require": "./src/types.ts"
     },
     "./validation": {
-      "import": "./dist/validation.mjs",
-      "require": "./dist/validation.cjs"
+      "import": "./src/validation.ts",
+      "require": "./src/validation.ts"
     },
     "./workflows": {
-      "import": "./dist/workflows.mjs",
-      "require": "./dist/workflows.cjs"
+      "import": "./src/workflows.ts",
+      "require": "./src/workflows.ts"
     },
     "./package.json": "./package.json"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

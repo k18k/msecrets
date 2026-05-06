@@ -1,5 +1,6 @@
-import type { MSecretsAdapter } from "@msecrets/core/runtime";
 import { type PrivateKey, readPrivateKeys, decrypt, readMessage } from "openpgp";
+
+import type { MSecretsAdapter } from "../runtime.ts";
 
 export type RawPKsAdapterOptions = {
   keys: string[];
