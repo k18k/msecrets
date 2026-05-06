@@ -1,5 +1,10 @@
 import { gpgProvider } from "./gpg.provider.ts";
-import type { KeyIdentity, KeyProvider, PrivateKey, PublicKey } from "./types.ts";
+import type {
+  KeyIdentity,
+  KeyProvider,
+  MSecretsPrivateKey,
+  MSecretsPublicKey,
+} from "./types.ts";
 
 export type * from "./types.ts";
 
@@ -15,7 +20,7 @@ export const keyProviders = {
     return keys.flat();
   },
 
-  async getPublicKey(fingerprint: string): Promise<PublicKey | null> {
+  async getPublicKey(fingerprint: string): Promise<MSecretsPublicKey | null> {
     for (const provider of providers) {
       const keys = await provider.listKeys();
 
@@ -29,7 +34,7 @@ export const keyProviders = {
     return null;
   },
 
-  async getPrivateKey(fingerprint: string): Promise<PrivateKey | null> {
+  async getPrivateKey(fingerprint: string): Promise<MSecretsPrivateKey | null> {
     for (const provider of providers) {
       const keys = await provider.listKeys();
 

@@ -1,10 +1,10 @@
-import * as openpgp from "openpgp";
+import { readKey, readPrivateKey } from "node-rpgp";
 
-import type { PrivateKey, PublicKey } from "./providers/types.ts";
+import type { MSecretsPublicKey, MSecretsPrivateKey } from "./providers/types.ts";
 
 export type ParsedArmoredKey =
-  | ({ kind: "public" } & PublicKey)
-  | ({ kind: "private" } & PrivateKey);
+  | ({ kind: "public" } & MSecretsPublicKey)
+  | ({ kind: "private" } & MSecretsPrivateKey);
 
 function normalizeArmoredKey(value: string): string {
   const normalized = value.trim();
@@ -20,31 +20,39 @@ function getParseErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown parse failure";
 }
 
-export async function parseArmoredKeyMaterial(armoredKey: string): Promise<ParsedArmoredKey> {
+export function parseArmoredKeyMaterial(armoredKey: string): ParsedArmoredKey {
   const normalizedArmoredKey = normalizeArmoredKey(armoredKey);
 
   try {
-    const privateKey = await openpgp.readPrivateKey({
+    const privateKey = readPrivateKey({
       armoredKey: normalizedArmoredKey,
     });
 
+    if (!privateKey.fingerprint) {
+      throw new Error("Failed to parse armored PGP private key: missing fingerprint");
+    }
+
     return {
-      fingerprint: privateKey.getFingerprint(),
+      fingerprint: privateKey.fingerprint,
       kind: "private",
       privateKey: normalizedArmoredKey,
-      userIds: privateKey.getUserIDs(),
+      userIds: [],
     };
   } catch {
     try {
-      const publicKey = await openpgp.readKey({
+      const publicKey = readKey({
         armoredKey: normalizedArmoredKey,
       });
 
+      if (!publicKey.fingerprint) {
+        throw new Error("Failed to parse armored PGP public key: missing fingerprint");
+      }
+
       return {
-        fingerprint: publicKey.getFingerprint(),
+        fingerprint: publicKey.fingerprint,
         kind: "public",
         publicKey: normalizedArmoredKey,
-        userIds: publicKey.getUserIDs(),
+        userIds: [],
       };
     } catch (error) {
       throw new Error(`Failed to parse armored PGP key: ${getParseErrorMessage(error)}`);

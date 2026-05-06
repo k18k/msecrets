@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert";
 
-import * as openpgp from "openpgp";
+import { createMessage, encrypt, generateKey, readKey, readPrivateKey } from "node-rpgp";
 
 import { rawPKs } from "@msecrets/adapters/raw-pks";
 
@@ -51,27 +51,29 @@ test("can create client and get secrets", async () => {
   const testSecret = "test";
   const message = "Hello, World!";
 
-  const userIDs: Parameters<typeof openpgp.generateKey>[0]["userIDs"] = [
+  const userIDs = [
     {
       name: "Test User",
     },
   ];
 
-  const key = await openpgp.generateKey({
-    type: "curve25519",
+  const key = generateKey({
+    type: "ecc",
     userIDs,
   });
 
-  const privateKey = await openpgp.readPrivateKey({
+  const privateKey = readPrivateKey({
     armoredKey: key.privateKey,
   });
 
-  const fingerprint = privateKey.getFingerprint();
+  const fingerprint = privateKey.fingerprint;
+  assert.equal(typeof fingerprint, "string");
 
-  const encrypted = await openpgp.encrypt({
-    message: await openpgp.createMessage({ text: message }),
-    encryptionKeys: await openpgp.readKey({ armoredKey: key.publicKey }),
+  const encrypted = encrypt({
+    message: createMessage({ text: message }),
+    encryptionKeys: readKey({ armoredKey: key.publicKey }),
   });
+  assert.equal(typeof encrypted, "string");
 
   const client = new MSecrets({
     mode,

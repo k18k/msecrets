@@ -1,7 +1,11 @@
 import { defaultCryptoBackend, type CryptoBackend } from "./crypto.ts";
 import { parseArmoredKeyMaterial } from "./key-material.ts";
 import { keyProviders } from "./providers/index.ts";
-import type { KeyIdentity, PrivateKey, PublicKey } from "./providers/types.ts";
+import type {
+  KeyIdentity,
+  MSecretsPrivateKey,
+  MSecretsPublicKey,
+} from "./providers/types.ts";
 import {
   createSecretDef,
   getConfiguredKey,
@@ -34,8 +38,8 @@ export type WorkspaceSnapshot = {
 
 export type WorkflowKeyAccess = {
   listAllKeys(): Promise<KeyIdentity[]>;
-  getPublicKey(fingerprint: string): Promise<PublicKey | null>;
-  getPrivateKey(fingerprint: string): Promise<PrivateKey | null>;
+  getPublicKey(fingerprint: string): Promise<MSecretsPublicKey | null>;
+  getPrivateKey(fingerprint: string): Promise<MSecretsPrivateKey | null>;
 };
 
 export type WorkflowDependencies = {
@@ -186,7 +190,7 @@ async function getArmoredPrivateKeysForOwners(
     normalizedOwners.map((owner) => keyAccess.getPrivateKey(owner)),
   );
   const availablePrivateKeys = privateKeys.filter(
-    (privateKey): privateKey is PrivateKey => privateKey !== null,
+    (privateKey): privateKey is MSecretsPrivateKey => privateKey !== null,
   );
 
   if (!availablePrivateKeys.length) {
@@ -580,7 +584,7 @@ export async function importConfiguredKey(
   path: string,
   fingerprint: string,
   dependencies?: WorkflowDependencyOverrides,
-): Promise<{ alreadyImported: boolean; key: PublicKey }> {
+): Promise<{ alreadyImported: boolean; key: MSecretsPublicKey }> {
   const { keyAccess } = resolveWorkflowDependencies(dependencies);
   const normalizedFingerprint = normalizeText(fingerprint);
   const publicKey = await keyAccess.getPublicKey(normalizedFingerprint);
@@ -607,7 +611,7 @@ export async function importConfiguredKey(
 export async function importConfiguredArmoredKey(
   path: string,
   armoredKey: string,
-): Promise<{ alreadyImported: boolean; key: PublicKey }> {
+): Promise<{ alreadyImported: boolean; key: MSecretsPublicKey }> {
   const parsedKey = await parseArmoredKeyMaterial(armoredKey);
 
   if (parsedKey.kind !== "public") {

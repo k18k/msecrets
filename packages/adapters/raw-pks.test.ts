@@ -1,25 +1,27 @@
 import assert from "node:assert";
 import { test } from "node:test";
 
-import * as openpgp from "openpgp";
+import { createMessage, encrypt, generateKey, readKey, readPrivateKey } from "node-rpgp";
 
 import { rawPKs } from "./src/raw-pks.ts";
 
 test("rawPKs decrypts messages for matching owners", async () => {
-  const keyPair = await openpgp.generateKey({
-    type: "curve25519",
+  const keyPair = generateKey({
+    type: "ecc",
     userIDs: [{ name: "Adapter Test" }],
   });
-  const privateKey = await openpgp.readPrivateKey({
+  const privateKey = readPrivateKey({
     armoredKey: keyPair.privateKey,
   });
-  const fingerprint = privateKey.getFingerprint();
+  const fingerprint = privateKey.fingerprint;
+  assert.equal(typeof fingerprint, "string");
   const plaintext = "hello from raw-pks";
 
-  const encryptedValue = await openpgp.encrypt({
-    message: await openpgp.createMessage({ text: plaintext }),
-    encryptionKeys: await openpgp.readKey({ armoredKey: keyPair.publicKey }),
+  const encryptedValue = encrypt({
+    message: createMessage({ text: plaintext }),
+    encryptionKeys: readKey({ armoredKey: keyPair.publicKey }),
   });
+  assert.equal(typeof encryptedValue, "string");
 
   const adapter = await rawPKs({
     keys: [keyPair.privateKey],
@@ -58,15 +60,16 @@ test("rawPKs decrypts messages for matching owners", async () => {
 });
 
 test("rawPKs returns null when no owner key matches", async () => {
-  const keyPair = await openpgp.generateKey({
-    type: "curve25519",
+  const keyPair = generateKey({
+    type: "ecc",
     userIDs: [{ name: "Adapter Test" }],
   });
 
-  const encryptedValue = await openpgp.encrypt({
-    message: await openpgp.createMessage({ text: "secret" }),
-    encryptionKeys: await openpgp.readKey({ armoredKey: keyPair.publicKey }),
+  const encryptedValue = encrypt({
+    message: createMessage({ text: "secret" }),
+    encryptionKeys: readKey({ armoredKey: keyPair.publicKey }),
   });
+  assert.equal(typeof encryptedValue, "string");
 
   const adapter = await rawPKs({
     keys: [keyPair.privateKey],
@@ -99,7 +102,7 @@ test("rawPKs returns null when no owner key matches", async () => {
 });
 
 test("rawPKs rejects malformed armored private keys clearly", async () => {
-  await assert.rejects(
+  assert.throws(
     () =>
       rawPKs({
         keys: ["not-a-private-key"],
@@ -109,14 +112,15 @@ test("rawPKs rejects malformed armored private keys clearly", async () => {
 });
 
 test("rawPKs rejects malformed ciphertext clearly", async () => {
-  const keyPair = await openpgp.generateKey({
-    type: "curve25519",
+  const keyPair = generateKey({
+    type: "ecc",
     userIDs: [{ name: "Adapter Test" }],
   });
-  const privateKey = await openpgp.readPrivateKey({
+  const privateKey = readPrivateKey({
     armoredKey: keyPair.privateKey,
   });
-  const fingerprint = privateKey.getFingerprint();
+  const fingerprint = privateKey.fingerprint;
+  assert.equal(typeof fingerprint, "string");
   const adapter = await rawPKs({
     keys: [keyPair.privateKey],
   });

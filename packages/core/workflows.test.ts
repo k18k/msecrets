@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import * as openpgp from "openpgp";
+import { generateKey, readPrivateKey } from "node-rpgp";
 
 import { openPgpCryptoBackend } from "./src/crypto.ts";
 import { getSecretsFile, writeSecretsFile } from "./src/secrets-file.ts";
@@ -88,16 +88,19 @@ function createFixtureFile(): SecretsFile {
 }
 
 async function generateTestKey(name: string): Promise<TestKeyMaterial> {
-  const keyPair = await openpgp.generateKey({
-    type: "curve25519",
+  const keyPair = generateKey({
+    type: "ecc",
     userIDs: [{ name }],
   });
-  const privateKey = await openpgp.readPrivateKey({
+  const privateKey = readPrivateKey({
     armoredKey: keyPair.privateKey,
   });
+  if (!privateKey.fingerprint) {
+    throw new Error("Generated test key is missing a fingerprint");
+  }
 
   return {
-    fingerprint: privateKey.getFingerprint(),
+    fingerprint: privateKey.fingerprint,
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
     userIds: [name],

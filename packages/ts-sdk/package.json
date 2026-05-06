@@ -40,6 +40,7 @@
   },
   "engineStrict": true,
   "devDependencies": {
-    "@msecrets/core": "*"
+    "@msecrets/core": "*",
+    "node-rpgp": "^1.0.0"
   }
 }

@@ -3,11 +3,11 @@ export type KeyIdentity = {
   userIds: string[];
 };
 
-export type PublicKey = KeyIdentity & {
+export type MSecretsPublicKey = KeyIdentity & {
   publicKey: string;
 };
 
-export type PrivateKey = KeyIdentity & {
+export type MSecretsPrivateKey = KeyIdentity & {
   privateKey: string;
 };
 
@@ -15,6 +15,6 @@ export type KeyProvider = {
   name: string;
   isAvailable(): boolean;
   listKeys(): Promise<KeyIdentity[]>;
-  getPublicKey(fingerprint: string): Promise<PublicKey>;
-  getPrivateKey(fingerprint: string): Promise<PrivateKey>;
+  getPublicKey(fingerprint: string): Promise<MSecretsPublicKey>;
+  getPrivateKey(fingerprint: string): Promise<MSecretsPrivateKey>;
 };

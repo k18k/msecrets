@@ -1,6 +1,6 @@
-import type { PublicKey } from "./providers/types.ts";
+import type { MSecretsPublicKey } from "./providers/types.ts";
 
-export type Key = PublicKey;
+export type Key = MSecretsPublicKey;
 
 export type SecretDef = {
   encryptedValue: string;

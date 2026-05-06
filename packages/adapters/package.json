@@ -1,11 +1,10 @@
 {
   "name": "@msecrets/adapters",
   "version": "2.0.2",
-  "description": "Runtime decryption adapters for msecrets (GPG, Docker Secrets, raw OpenPGP keys)",
+  "description": "Runtime decryption adapters for msecrets (GPG, Docker Secrets, raw PGP keys)",
   "keywords": [
     "adapter",
     "encryption",
-    "openpgp",
     "secrets",
     "secrets-management"
   ],
@@ -37,8 +36,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "build": "tsdown"
   },
-  "devDependencies": {
-    "openpgp": "^6.3.0"
+  "dependencies": {
+    "node-rpgp": "^1.0.0"
   },
   "engines": {
     "node": ">=24"

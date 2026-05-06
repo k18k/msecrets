@@ -1,10 +1,20 @@
-import * as openpgp from "openpgp";
+import {
+  createMessage,
+  decrypt,
+  decryptKey,
+  encrypt,
+  readKey,
+  readMessage,
+  readPrivateKey,
+  type PrivateKey,
+  type PublicKey,
+} from "node-rpgp";
 
-import type { PublicKey } from "./providers/types.ts";
+import type { MSecretsPublicKey } from "./providers/types.ts";
 
 export type EncryptInput = {
   plaintext: string;
-  recipients: PublicKey[];
+  recipients: MSecretsPublicKey[];
 };
 
 export type DecryptInput = {
@@ -19,11 +29,11 @@ export type DecryptResult = {
 };
 
 export type CryptoBackend = {
-  decrypt(input: DecryptInput): Promise<DecryptResult>;
-  encrypt(input: EncryptInput): Promise<string>;
+  decrypt(input: DecryptInput): DecryptResult;
+  encrypt(input: EncryptInput): string;
 };
 
-function getRecipientFingerprints(recipients: PublicKey[]): string[] {
+function getRecipientFingerprints(recipients: MSecretsPublicKey[]): string[] {
   if (!recipients.length) {
     throw new Error("At least one recipient key is required");
   }
@@ -39,7 +49,7 @@ function getRecipientFingerprints(recipients: PublicKey[]): string[] {
   });
 }
 
-function getArmoredPublicKeys(recipients: PublicKey[]): string[] {
+function getArmoredPublicKeys(recipients: MSecretsPublicKey[]): string[] {
   return recipients.map((recipient) => {
     const publicKey = recipient.publicKey.trim();
 
@@ -63,38 +73,36 @@ function normalizeArmoredPrivateKeys(armoredPrivateKeys: string[]): string[] {
   return keys;
 }
 
-async function loadDecryptionKeys(
+function loadDecryptionKeys(
   armoredPrivateKeys: string[],
   passphrases: string[] = [],
-): Promise<openpgp.PrivateKey[]> {
+): PrivateKey[] {
   const normalizedPassphrases = passphrases
     .map((passphrase) => passphrase.trim())
     .filter((passphrase) => passphrase.length > 0);
 
-  return Promise.all(
-    normalizeArmoredPrivateKeys(armoredPrivateKeys).map(async (armoredPrivateKey) => {
-      const privateKey = await openpgp.readPrivateKey({
-        armoredKey: armoredPrivateKey,
-      });
+  return normalizeArmoredPrivateKeys(armoredPrivateKeys).map((armoredPrivateKey) => {
+    const privateKey = readPrivateKey({
+      armoredKey: armoredPrivateKey,
+    });
 
-      if (!normalizedPassphrases.length) {
-        return privateKey;
+    if (!normalizedPassphrases.length) {
+      return privateKey;
+    }
+
+    for (const passphrase of normalizedPassphrases) {
+      try {
+        return decryptKey({
+          privateKey,
+          passphrase,
+        });
+      } catch {
+        continue;
       }
+    }
 
-      for (const passphrase of normalizedPassphrases) {
-        try {
-          return await openpgp.decryptKey({
-            privateKey,
-            passphrase,
-          });
-        } catch {
-          continue;
-        }
-      }
-
-      throw new Error("Unable to unlock OpenPGP private key with the provided passphrases");
-    }),
-  );
+    throw new Error("Unable to unlock OpenPGP private key with the provided passphrases");
+  });
 }
 
 function normalizeDecryptedPayload(data: string | Uint8Array): string {
@@ -105,23 +113,21 @@ function normalizeDecryptedPayload(data: string | Uint8Array): string {
   return new TextDecoder().decode(data);
 }
 
-async function loadEncryptionKeys(recipients: PublicKey[]): Promise<openpgp.PublicKey[]> {
-  return Promise.all(
-    getArmoredPublicKeys(recipients).map((armoredPublicKey) =>
-      openpgp.readKey({
-        armoredKey: armoredPublicKey,
-      }),
-    ),
+function loadEncryptionKeys(recipients: MSecretsPublicKey[]): PublicKey[] {
+  return getArmoredPublicKeys(recipients).map((armoredPublicKey) =>
+    readKey({
+      armoredKey: armoredPublicKey,
+    }),
   );
 }
 
 export const openPgpCryptoBackend: CryptoBackend = {
-  async decrypt({ armoredPrivateKeys, ciphertext, passphrases }) {
-    const message = await openpgp.readMessage({
+  decrypt({ armoredPrivateKeys, ciphertext, passphrases }) {
+    const message = readMessage({
       armoredMessage: ciphertext,
     });
-    const decryptionKeys = await loadDecryptionKeys(armoredPrivateKeys, passphrases);
-    const { data } = await openpgp.decrypt({
+    const decryptionKeys = loadDecryptionKeys(armoredPrivateKeys, passphrases);
+    const { data } = decrypt({
       message,
       decryptionKeys,
       format: "binary",
@@ -132,16 +138,22 @@ export const openPgpCryptoBackend: CryptoBackend = {
       payload: normalizeDecryptedPayload(data),
     };
   },
-  async encrypt({ plaintext, recipients }) {
+  encrypt({ plaintext, recipients }) {
     getRecipientFingerprints(recipients);
 
-    return openpgp.encrypt({
-      message: await openpgp.createMessage({
+    const res = encrypt({
+      message: createMessage({
         text: plaintext,
       }),
-      encryptionKeys: await loadEncryptionKeys(recipients),
+      encryptionKeys: loadEncryptionKeys(recipients),
       format: "armored",
     });
+
+    if (typeof res === "string") {
+      return res;
+    } else {
+      return new TextDecoder().decode(res);
+    }
   },
 };
 

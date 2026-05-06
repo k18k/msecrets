@@ -1,7 +1,7 @@
 import { execFileSync, spawnSync } from "node:child_process";
 
 import { parseKeys } from "../gpg.ts";
-import type { KeyProvider, PrivateKey, PublicKey } from "./types.ts";
+import type { KeyProvider, MSecretsPrivateKey, MSecretsPublicKey } from "./types.ts";
 
 function hasGpgBinary(): boolean {
   return spawnSync("which", ["gpg"], { stdio: "ignore" }).status === 0;
@@ -22,7 +22,7 @@ function createGpgProvider(): KeyProvider | null {
     async listKeys() {
       return parseKeys(runGpg(["--list-secret-keys", "--with-colons"]));
     },
-    async getPublicKey(fingerprint: string): Promise<PublicKey> {
+    async getPublicKey(fingerprint: string): Promise<MSecretsPublicKey> {
       const keys = await this.listKeys();
       const key = keys.find((candidate) => candidate.fingerprint === fingerprint);
 
@@ -35,7 +35,7 @@ function createGpgProvider(): KeyProvider | null {
         publicKey: runGpg(["--export", "--armor", fingerprint]),
       };
     },
-    async getPrivateKey(fingerprint: string): Promise<PrivateKey> {
+    async getPrivateKey(fingerprint: string): Promise<MSecretsPrivateKey> {
       const keys = await this.listKeys();
       const key = keys.find((candidate) => candidate.fingerprint === fingerprint);
 
