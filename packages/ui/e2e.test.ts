@@ -127,10 +127,14 @@ test(
       "utf8",
     );
 
-    const child = spawn(process.execPath, ["./server/start.ts", configPath, "--port", String(port)], {
-      cwd: uiDirectory,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(
+      process.execPath,
+      ["./server/start.ts", configPath, "--port", String(port)],
+      {
+        cwd: uiDirectory,
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
 
     const appendOutput = (chunk: Buffer | string) => {
       output.value += chunk.toString();

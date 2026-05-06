@@ -3,6 +3,7 @@
 msecrets is a repository-native encrypted secrets system.
 
 This monorepo ships publishable npm packages for:
+
 - authoring via CLI
 - runtime decryption via SDK + adapters
 - local UI editing/inspection
@@ -52,6 +53,7 @@ npm run verify:release
 ```
 
 This includes:
+
 - workspace build
 - tests + e2e smoke
 - `npm pack --dry-run` for all publishable packages

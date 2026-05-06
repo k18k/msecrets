@@ -8,7 +8,7 @@ Local web UI for managing msecrets encrypted environment files.
 
 ```bash
 npm install -g @msecrets/ui
-````
+```
 
 Or run without installing:
 
@@ -46,25 +46,25 @@ If no file path is provided, the UI defaults to:
 
 `@msecrets/ui` provides a local browser interface for:
 
-* initializing a msecrets workspace file
-* managing environments
-* importing recipient public keys
-* importing temporary runtime private keys
-* creating, renaming, and deleting secrets
-* setting encrypted values per environment
-* peeking/decrypting values when a matching runtime private key is loaded
-* sharing and revoking encrypted values for configured recipient keys
+- initializing a msecrets workspace file
+- managing environments
+- importing recipient public keys
+- importing temporary runtime private keys
+- creating, renaming, and deleting secrets
+- setting encrypted values per environment
+- peeking/decrypting values when a matching runtime private key is loaded
+- sharing and revoking encrypted values for configured recipient keys
 
 ## Security defaults
 
 The UI is intentionally local-first:
 
-* binds only to `127.0.0.1`
-* serves over local HTTPS with a throwaway certificate
-* does not expose the server on your LAN
-* keeps imported runtime private keys in process memory only
-* exits automatically after a period of inactivity
-* reads and writes the workspace file directly on your machine
+- binds only to `127.0.0.1`
+- serves over local HTTPS with a throwaway certificate
+- does not expose the server on your LAN
+- keeps imported runtime private keys in process memory only
+- exits automatically after a period of inactivity
+- reads and writes the workspace file directly on your machine
 
 The local HTTPS certificate is generated at startup and is not intended to establish public trust. Your browser may show a certificate warning.
 
@@ -122,8 +122,8 @@ npm --workspace @msecrets/ui run start
 
 The package builds two parts:
 
-* server runtime with `tsdown`
-* client SPA with Vite
+- server runtime with `tsdown`
+- client SPA with Vite
 
 ```bash
 npm --workspace @msecrets/ui run server:build

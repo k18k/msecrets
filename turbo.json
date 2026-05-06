@@ -1,19 +1,13 @@
 {
-    "$schema": "https://turborepo.dev/schema.json",
-    "ui": "tui",
-    "tasks": {
-        "build": {
-            "dependsOn": [
-                "^build"
-            ],
-            "outputs": [
-                "dist/**"
-            ]
-        },
-        "publish": {
-            "dependsOn": [
-                "^publish"
-            ]
-        }
+  "$schema": "https://turborepo.dev/schema.json",
+  "ui": "tui",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "publish": {
+      "dependsOn": ["^publish"]
     }
+  }
 }

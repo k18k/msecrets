@@ -26,7 +26,7 @@ const handler = new RPCHandler(router, {
   ],
 });
 
-const distDir = resolve(import.meta.dirname, '..', "./dist/client");
+const distDir = resolve(import.meta.dirname, "..", "./dist/client");
 const indexHtmlPath = join(distDir, "index.html");
 
 const contentTypes: Record<string, string> = {
@@ -47,11 +47,7 @@ const contentTypes: Record<string, string> = {
   ".wasm": "application/wasm",
 };
 
-async function sendFile(
-  res: import("node:http").ServerResponse,
-  filePath: string,
-  method: string,
-) {
+async function sendFile(res: import("node:http").ServerResponse, filePath: string, method: string) {
   const fileStat = await stat(filePath);
 
   if (!fileStat.isFile()) {
@@ -61,10 +57,7 @@ async function sendFile(
   }
 
   res.statusCode = 200;
-  res.setHeader(
-    "content-type",
-    contentTypes[extname(filePath)] ?? "application/octet-stream",
-  );
+  res.setHeader("content-type", contentTypes[extname(filePath)] ?? "application/octet-stream");
   res.setHeader("content-length", String(fileStat.size));
 
   if (method === "HEAD") {
@@ -98,9 +91,7 @@ const server = createServer({ cert, key }, async (req, res) => {
     const url = new URL(req.url, "https://localhost");
     const pathname = decodeURIComponent(url.pathname);
 
-    const requestedPath = normalize(
-      pathname === "/" ? "/index.html" : pathname,
-    );
+    const requestedPath = normalize(pathname === "/" ? "/index.html" : pathname);
     const filePath = resolve(join(distDir, requestedPath));
 
     if (!filePath.startsWith(distDir + "/") && filePath !== distDir) {

@@ -2,9 +2,6 @@
   "name": "@msecrets/ui",
   "version": "2.0.2",
   "private": false,
-  "files": [
-    "dist"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/k18k/msecrets.git",
@@ -13,10 +10,16 @@
   "bin": {
     "@msecrets/ui": "./dist/start.mjs"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     ".": "./dist/start.mjs",
     "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "node --watch --watch-path=server ./server/dev.ts ../examples/.env.ms.json",
@@ -26,13 +29,10 @@
     "server:build": "tsdown",
     "test:e2e": "node --test --test-timeout=90000 e2e.test.ts"
   },
-  "publishConfig": {
-    "access": "public"
-  },
   "devDependencies": {
-    "@msecrets/core": "*",
     "@mantine/core": "9.0.0",
     "@mantine/hooks": "9.0.0",
+    "@msecrets/core": "*",
     "@orpc/client": "^1.14.0",
     "@orpc/server": "^1.14.0",
     "@orpc/tanstack-query": "^1.14.0",

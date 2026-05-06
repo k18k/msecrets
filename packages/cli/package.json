@@ -10,12 +10,12 @@
   ],
   "license": "MIT",
   "author": "Krystian Mikołajczyk",
-  "files": [
-    "dist"
-  ],
   "bin": {
     "msecrets": "./dist/index.mjs"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "types": "./dist/index.d.cts",
   "imports": {
@@ -26,12 +26,12 @@
     ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsdown",
     "test:e2e": "node --test --test-timeout=60000 e2e.test.ts"
-  },
-  "publishConfig": {
-    "access": "public"
   },
   "devDependencies": {
     "@msecrets/core": "*",

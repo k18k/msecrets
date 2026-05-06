@@ -297,11 +297,11 @@ export const uiCommand = new Command()
       process.execPath,
       [uiRuntime.serverEntry, configPath, "--port", String(upstreamPort)],
       {
-      cwd: uiDirectory,
-      env: {
-        ...env,
-      },
-      stdio: "inherit",
+        cwd: uiDirectory,
+        env: {
+          ...env,
+        },
+        stdio: "inherit",
       },
     );
 

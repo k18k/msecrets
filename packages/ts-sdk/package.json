@@ -35,11 +35,11 @@
     "typecheck": "tsc -p tsconfig.json",
     "build": "tsdown"
   },
+  "devDependencies": {
+    "@msecrets/core": "*"
+  },
   "engines": {
     "node": ">=24"
   },
-  "engineStrict": true,
-  "devDependencies": {
-    "@msecrets/core": "*"
-  }
+  "engineStrict": true
 }

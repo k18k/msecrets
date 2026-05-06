@@ -127,15 +127,7 @@ test(
 
     const child = spawn(
       process.execPath,
-      [
-        cliEntry,
-        "--config",
-        configPath,
-        "ui",
-        "--no-open",
-        "--port",
-        String(preferredPort),
-      ],
+      [cliEntry, "--config", configPath, "ui", "--no-open", "--port", String(preferredPort)],
       {
         cwd: repoRoot,
         stdio: ["ignore", "pipe", "pipe"],

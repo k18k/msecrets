@@ -42,6 +42,7 @@ msecrets --config secrets.ms.json init
 `msecrets ui` launches the prebuilt local UI runtime.
 
 Behavior:
+
 - binds to `127.0.0.1`
 - provisions local HTTPS certs in `~/.msecrets/certs`
 - fails fast if UI build assets are missing
