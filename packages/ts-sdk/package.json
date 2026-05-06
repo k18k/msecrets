@@ -11,6 +11,10 @@
   ],
   "license": "MIT",
   "author": "Krystian Mikołajczyk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/k18k/msecrets"
+  },
   "files": [
     "dist"
   ],
