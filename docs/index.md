@@ -57,6 +57,7 @@ hero_shell: |-
 </div>
 
 ## Quick start
+
 {: #quick-start }
 
 Install the authoring CLI and initialize a repository secrets file.

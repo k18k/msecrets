@@ -1,9 +1,9 @@
 {
   "name": "@msecrets/docs",
+  "version": "3.0.1",
   "private": true,
   "type": "module",
   "scripts": {
     "preview": "ruby -S bundle install && ruby -S bundle exec jekyll serve --destination ../.docs-site --host 127.0.0.1 --port 4000 --livereload"
-  },
-  "version": "3.0.1"
+  }
 }

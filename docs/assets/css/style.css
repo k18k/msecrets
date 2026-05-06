@@ -29,11 +29,15 @@ html {
 body {
   margin: 0;
   background:
-    linear-gradient(180deg, rgba(235, 231, 221, 0.72), rgba(247, 245, 239, 0) 420px),
-    var(--bg);
+    linear-gradient(180deg, rgba(235, 231, 221, 0.72), rgba(247, 245, 239, 0) 420px), var(--bg);
   color: var(--text);
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   font-size: 16px;
   line-height: 1.6;
