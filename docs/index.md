@@ -78,7 +78,7 @@ The result is an encrypted `.env.ms.json` file suitable for committing to Git.
 <div class="cards two">
   <article class="card accent">
     <h3>Authoring</h3>
-    <p>Use the <a href="{{ '/cli/' | relative_url }}">CLI</a> or local UI to manage environments, recipient public keys, and encrypted values. Core workflows keep file changes deterministic.</p>
+    <p>Use the <a href="{{ '/cli/' | relative_url }}">CLI</a> or <a href="{{ '/ui/' | relative_url }}">local UI</a> to manage environments, recipient public keys, and encrypted values. Core workflows keep file changes deterministic.</p>
   </article>
   <article class="card blue">
     <h3>Runtime</h3>
@@ -98,15 +98,15 @@ The result is an encrypted `.env.ms.json` file suitable for committing to Git.
 
 <div class="cards">
   <article class="card">
+    <h3><a href="{{ '/ui/' | relative_url }}">UI</a></h3>
+    <p>Use the local browser dashboard to inspect and edit a workspace file.</p>
+  </article>
+  <article class="card">
     <h3><a href="{{ '/file-format/' | relative_url }}">File format</a></h3>
     <p>Understand the portable <code>.env.ms.json</code> contract.</p>
   </article>
   <article class="card">
     <h3><a href="{{ '/architecture/' | relative_url }}">Architecture</a></h3>
     <p>See how core, CLI, SDK, adapters, and UI fit together.</p>
-  </article>
-  <article class="card">
-    <h3><a href="https://github.com/k18k/msecrets">Repository</a></h3>
-    <p>Browse packages, tests, and release workflows on GitHub.</p>
   </article>
 </div>
