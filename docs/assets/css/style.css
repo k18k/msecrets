@@ -473,3 +473,25 @@ pre code {
     flex-direction: column;
   }
 }
+
+.screenshot-frame {
+  overflow: hidden;
+  margin: 24px 0 34px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: var(--shadow);
+}
+
+.screenshot-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.screenshot-frame figcaption {
+  padding: 14px 18px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.92rem;
+}

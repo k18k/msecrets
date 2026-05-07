@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="960" viewBox="0 0 1440 960" role="img" aria-labelledby="title desc">
+  <title id="title">msecrets UI overview screenshot</title>
+  <desc id="desc">Overview page with workspace health, quick actions, summary cards, and a secret matrix.</desc>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#111827" flood-opacity="0.14"/></filter>
+    <style>
+      .bg{fill:#f6f7fb}.panel{fill:#fff;stroke:#d9dee8;stroke-width:1}.nav{fill:#f8fafc}.ink{fill:#1f2937}.muted{fill:#64748b}.green{fill:#e7f7ef;stroke:#9bd7b6}.blue{fill:#eaf3ff;stroke:#a9c9f7}.yellow{fill:#fff6df;stroke:#efd38a}.line{stroke:#e5e7eb;stroke-width:1}.btn{fill:#228be6}.btn2{fill:#eef6ff;stroke:#b9d7fb}.txt{font-family:Inter,Segoe UI,Arial,sans-serif}.h{font-weight:700;font-size:30px}.h2{font-weight:700;font-size:22px}.body{font-size:16px}.small{font-size:13px}.tiny{font-size:12px}.white{fill:#fff}
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="960"/>
+  <rect x="40" y="36" width="1360" height="888" rx="22" class="panel" filter="url(#shadow)"/>
+  <rect x="40" y="36" width="1360" height="70" rx="22" fill="#ffffff"/>
+  <line x1="40" y1="106" x2="1400" y2="106" class="line"/>
+  <text x="72" y="80" class="txt h2 ink">msecrets</text>
+  <text x="1200" y="66" class="txt tiny muted">Config</text>
+  <text x="1200" y="86" class="txt small ink">packages/ui/.env.ms.json</text>
+  <rect x="40" y="106" width="250" height="818" class="nav"/>
+  <line x1="290" y1="106" x2="290" y2="924" class="line"/>
+  <rect x="62" y="134" width="206" height="42" rx="8" fill="#e7f5ff"/>
+  <text x="88" y="161" class="txt body ink">Overview</text>
+  <text x="88" y="216" class="txt body muted">Secrets</text><rect x="232" y="197" width="24" height="22" rx="11" fill="#e5e7eb"/><text x="240" y="213" class="txt tiny ink">1</text>
+  <text x="88" y="268" class="txt body muted">Environments</text><rect x="232" y="249" width="24" height="22" rx="11" fill="#e5e7eb"/><text x="240" y="265" class="txt tiny ink">1</text>
+  <text x="88" y="320" class="txt body muted">Recipient Keys</text><rect x="232" y="301" width="24" height="22" rx="11" fill="#e5e7eb"/><text x="240" y="317" class="txt tiny ink">1</text>
+  <text x="88" y="372" class="txt body muted">Runtime Keys</text>
+  <text x="88" y="424" class="txt body muted">Raw JSON</text>
+  <text x="88" y="476" class="txt body muted">Diagnostics</text>
+  <g transform="translate(330 146)">
+    <text class="txt h ink" x="0" y="0">Overview</text>
+    <text class="txt body muted" x="0" y="30">Workspace health and common file editor workflows.</text>
+    <rect x="0" y="66" width="1030" height="132" rx="10" class="panel"/>
+    <text x="24" y="108" class="txt h2 ink">Workspace Health</text>
+    <rect x="24" y="128" width="982" height="44" rx="8" class="green"/>
+    <text x="46" y="156" class="txt body ink">The workspace is valid and no warnings were found.</text>
+    <rect x="0" y="224" width="1030" height="128" rx="10" class="panel"/>
+    <text x="24" y="266" class="txt h2 ink">Quick Actions</text>
+    <rect x="24" y="286" width="128" height="40" rx="8" class="btn"/><text x="46" y="311" class="txt body white">Create secret</text>
+    <rect x="166" y="286" width="100" height="40" rx="8" class="btn2"/><text x="187" y="311" class="txt body ink">Set value</text>
+    <rect x="280" y="286" width="154" height="40" rx="8" class="btn2"/><text x="301" y="311" class="txt body ink">Import public key</text>
+    <rect x="448" y="286" width="174" height="40" rx="8" class="btn2"/><text x="469" y="311" class="txt body ink">Import runtime key</text>
+    <g transform="translate(0 386)">
+      <rect width="320" height="120" rx="10" class="panel"/><text x="22" y="42" class="txt small muted">Secrets</text><text x="22" y="84" class="txt h ink">1</text>
+      <rect x="355" width="320" height="120" rx="10" class="panel"/><text x="377" y="42" class="txt small muted">Environments</text><text x="377" y="84" class="txt h ink">1</text>
+      <rect x="710" width="320" height="120" rx="10" class="panel"/><text x="732" y="42" class="txt small muted">Recipient keys</text><text x="732" y="84" class="txt h ink">1</text>
+    </g>
+    <rect x="0" y="540" width="1030" height="230" rx="10" class="panel"/>
+    <text x="24" y="582" class="txt h2 ink">Secret Environment Matrix</text>
+    <line x1="24" y1="620" x2="1006" y2="620" class="line"/>
+    <text x="24" y="654" class="txt small muted">Secret</text><text x="610" y="654" class="txt small muted">development</text><text x="820" y="654" class="txt small muted">Owners</text>
+    <line x1="24" y1="680" x2="1006" y2="680" class="line"/>
+    <text x="24" y="718" class="txt body ink">DB_PASSWORD</text><rect x="610" y="694" width="90" height="30" rx="15" fill="#e7f7ef"/><text x="633" y="714" class="txt small ink">set</text><text x="820" y="716" class="txt small ink">A1B8F31D…C16E8EF0</text>
+  </g>
+</svg>
