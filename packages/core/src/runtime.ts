@@ -1,10 +1,12 @@
-import type { Secret, SecretDef, SecretsFile } from "./types.ts";
+import type { Secret, SecretValue, SecretsFile } from "./model.ts";
 
 export type MSecretsAdapterContext = {
   key: string;
+  environment: string;
+  /** @deprecated Use environment instead. */
   mode: string;
   secret: Secret;
-  value: SecretDef;
+  value: SecretValue;
   secrets: SecretsFile;
 };
 

@@ -1,12 +1,15 @@
 import { type PrivateKey, readPrivateKeys, decrypt, readMessage } from "openpgp";
 
+import { normalizeDecryptedPayload } from "../crypto.ts";
 import type { MSecretsAdapter } from "../runtime.ts";
 
 export type RawPKsAdapterOptions = {
-  keys: string[];
+  rawPrivateKeys?: string[];
+  keys?: string[];
 };
 
-export async function rawPKs({ keys }: RawPKsAdapterOptions): Promise<MSecretsAdapter> {
+export async function rawPrivateKeys(options: RawPKsAdapterOptions): Promise<MSecretsAdapter> {
+  const keys = options.rawPrivateKeys ?? options.keys ?? [];
   const map = new Map<string, PrivateKey>();
   for (const key of keys) {
     let privateKeys: PrivateKey[];
@@ -23,7 +26,7 @@ export async function rawPKs({ keys }: RawPKsAdapterOptions): Promise<MSecretsAd
   }
   return {
     name: "raw-pks",
-    async decrypt({ key, mode, value: { encryptedValue: armoredMessage, owners } }) {
+    async decrypt({ environment, key, value: { encryptedValue: armoredMessage, owners } }) {
       for (const owner of owners) {
         if (map.has(owner)) {
           try {
@@ -34,11 +37,11 @@ export async function rawPKs({ keys }: RawPKsAdapterOptions): Promise<MSecretsAd
               decryptionKeys: map.get(owner)!,
             });
             if (decrypted) {
-              return decrypted.data;
+              return normalizeDecryptedPayload(decrypted.data);
             }
           } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            throw new Error(`raw-pks failed to decrypt ${key}.${mode}: ${message}`);
+            throw new Error(`raw-pks failed to decrypt ${key}.${environment}: ${message}`);
           }
         }
       }
@@ -46,3 +49,5 @@ export async function rawPKs({ keys }: RawPKsAdapterOptions): Promise<MSecretsAd
     },
   };
 }
+
+export const rawPKs = rawPrivateKeys;

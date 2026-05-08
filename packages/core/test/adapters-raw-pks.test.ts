@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import * as openpgp from "openpgp";
 
-import { rawPKs } from "./src/adapters/raw-pks.ts";
+import { rawPKs } from "../src/adapters/raw-pks.ts";
 
 test("rawPKs decrypts messages for matching owners", async () => {
   const keyPair = await openpgp.generateKey({
@@ -26,6 +26,7 @@ test("rawPKs decrypts messages for matching owners", async () => {
   });
 
   const decrypted = await adapter.decrypt({
+    environment: "development",
     key: "API_KEY",
     mode: "development",
     secret: {
@@ -73,6 +74,7 @@ test("rawPKs returns null when no owner key matches", async () => {
   });
 
   const decrypted = await adapter.decrypt({
+    environment: "development",
     key: "API_KEY",
     mode: "development",
     secret: {
@@ -124,6 +126,7 @@ test("rawPKs rejects malformed ciphertext clearly", async () => {
   await assert.rejects(
     async () =>
       adapter.decrypt({
+        environment: "development",
         key: "API_KEY",
         mode: "development",
         secret: {

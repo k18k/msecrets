@@ -3,7 +3,11 @@ import { test } from "node:test";
 
 import * as openpgp from "openpgp";
 
-import { openPgpCryptoBackend } from "./src/crypto.ts";
+import { openPgpCryptoBackend } from "../src/crypto.ts";
+
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n/g, "\n");
+}
 
 test("openPgpCryptoBackend encrypts and decrypts with armored keys", async () => {
   const keyPair = await openpgp.generateKey({
@@ -15,7 +19,7 @@ test("openPgpCryptoBackend encrypts and decrypts with armored keys", async () =>
     armoredKey: keyPair.privateKey,
   });
   const fingerprint = privateKey.getFingerprint();
-  const plaintext = "hello from core crypto";
+  const plaintext = " hello from core crypto \nsecond line\n";
 
   const encryptedValue = await openPgpCryptoBackend.encrypt({
     plaintext,
@@ -35,6 +39,9 @@ test("openPgpCryptoBackend encrypts and decrypts with armored keys", async () =>
     ciphertext: encryptedValue,
   });
 
-  assert.equal(decrypted.payload, plaintext);
+  assert.equal(decrypted.payload.startsWith(" hello"), true);
+  assert.equal(decrypted.payload.endsWith("\n"), true);
+  assert.equal(decrypted.payload.includes("second line"), true);
+  assert.equal(normalizeLineEndings(decrypted.payload), plaintext);
   assert.match(decrypted.info ?? "", /OpenPGP/);
 });

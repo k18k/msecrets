@@ -1,6 +1,6 @@
 import * as openpgp from "openpgp";
 
-import type { PrivateKey, PublicKey } from "./providers/types.ts";
+import type { PrivateKey, PublicKey } from "./keys/types.ts";
 
 export type ParsedArmoredKey =
   | ({ kind: "public" } & PublicKey)

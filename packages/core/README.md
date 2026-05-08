@@ -33,6 +33,10 @@ Validation throws a dedicated version compatibility error on major mismatch.
 npm --workspace @msecrets/core run build
 ```
 
+## Compatibility
+
+The persisted `.env.ms.json` shape is the compatibility contract. Package entrypoints are bundled for msecrets consumers and can be reorganized when standalone usage still works and the secrets file format remains compatible.
+
 ## Notes
 
 Business logic belongs here. UI/SDK should remain thin wrappers over core workflows.

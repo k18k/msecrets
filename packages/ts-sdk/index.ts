@@ -58,6 +58,7 @@ export class MSecrets {
     for (const adapter of this.config.adapters) {
       try {
         const decrypted = await adapter.decrypt({
+          environment: this.config.mode,
           key,
           mode: this.config.mode,
           secret,

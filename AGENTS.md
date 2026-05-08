@@ -86,6 +86,7 @@ Rules:
 - Must not depend on local environment state.
 - Must not include runtime-only data.
 - Must preserve v1 compatibility unless the user explicitly asks for a breaking format change.
+- This is the only backward compatibility boundary agents should treat as hard. Package APIs are prebundled for standalone use and may change when the `.env.ms.json` shape remains compatible.
 
 ### 5. Encryption model
 
@@ -150,6 +151,7 @@ Implications:
 
 - Add business logic to UI.
 - Modify anything under `packages/ui` unless the user explicitly asks for UI work.
+- Add nested `AGENTS.md` files unless a package has genuinely different local rules.
 - Hardcode environment-specific behavior.
 - Introduce hidden state.
 - Depend on local machine configuration.

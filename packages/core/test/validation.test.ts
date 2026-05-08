@@ -5,7 +5,7 @@ import {
   SecretsFileVersionError,
   validateSecretsFile,
   assertValidSecretsFile,
-} from "./src/validation.ts";
+} from "../src/validation.ts";
 
 test("validateSecretsFile rejects missing owners", () => {
   const result = validateSecretsFile({

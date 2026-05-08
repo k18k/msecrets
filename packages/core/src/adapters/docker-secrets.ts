@@ -3,7 +3,12 @@ import { join } from "node:path";
 
 import type { MSecretsAdapter } from "../runtime.ts";
 
-import { cleanupDir, createTempGpgHome, decryptWithGpg, importPrivateKey } from "./shared.ts";
+import {
+  cleanupDir,
+  createTempGpgHome,
+  decryptWithGpg,
+  importPrivateKey,
+} from "./gpg-cli-shared.ts";
 
 const DEFAULT_KEY_FILENAMES = [
   "msecrets-private-key.asc",

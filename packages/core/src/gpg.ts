@@ -1,4 +1,4 @@
-import type { KeyIdentity } from "./providers/types.ts";
+import type { KeyIdentity } from "./keys/types.ts";
 
 export function parseKeys(raw: string): KeyIdentity[] {
   const lines = raw.split("\n");

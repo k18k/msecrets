@@ -58,7 +58,6 @@
   },
   "engineStrict": true,
   "inlinedDependencies": {
-    "openpgp": "6.3.0",
-    "zod": "4.4.1"
+    "openpgp": "6.3.0"
   }
 }

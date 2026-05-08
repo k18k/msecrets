@@ -1,6 +1,6 @@
 import type { MSecretsAdapter } from "../runtime.ts";
 
-import { decryptWithGpg } from "./shared.ts";
+import { decryptWithGpg } from "./gpg-cli-shared.ts";
 
 export type GpgAdapterOptions = {
   homedir?: string;

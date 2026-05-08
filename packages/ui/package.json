@@ -22,7 +22,7 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "node --watch --watch-path=server ./server/dev.ts ../examples/.env.ms.json",
+    "dev": "node --watch --watch-path=server ./server/dev.ts .env.ms.json",
     "start": "node ./server/start.ts ../examples/.env.ms.json",
     "build": "npm run server:build && npm run client:build",
     "client:build": "vite build",
