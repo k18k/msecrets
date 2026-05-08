@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Group, Modal, Stack, Textarea } from "@mantine/core";
+import { Alert, Button, Group, Modal, PasswordInput, Stack, Textarea } from "@mantine/core";
 import { useOrpcMutation } from "../../hooks/useOrpcMutation";
 import { orpcClient } from "../../orpc-client";
 
@@ -11,7 +11,7 @@ export function ImportPrivateKeyModal({
   opened: boolean;
 }) {
   const importKey = useOrpcMutation<
-    { armoredKey: string },
+    { armoredKey: string; passphrase?: string },
     { fingerprint: string; userIds: string[] }
   >({
     invalidateRuntimeKeys: true,
@@ -19,9 +19,13 @@ export function ImportPrivateKeyModal({
     onSuccess: onClose,
   });
   const [armoredKey, setArmoredKey] = useState("");
+  const [passphrase, setPassphrase] = useState("");
 
   useEffect(() => {
-    if (!opened) setArmoredKey("");
+    if (!opened) {
+      setArmoredKey("");
+      setPassphrase("");
+    }
   }, [opened]);
 
   return (
@@ -40,6 +44,12 @@ export function ImportPrivateKeyModal({
           required
           value={armoredKey}
         />
+        <PasswordInput
+          label="Private key passphrase"
+          onChange={(event) => setPassphrase(event.currentTarget.value)}
+          placeholder="Required only for protected private keys"
+          value={passphrase}
+        />
         {importKey.error ? <Alert color="red">{importKey.error.message}</Alert> : null}
         <Group justify="flex-end">
           <Button onClick={onClose} variant="default">
@@ -48,7 +58,7 @@ export function ImportPrivateKeyModal({
           <Button
             disabled={!armoredKey.trim()}
             loading={importKey.isPending}
-            onClick={() => importKey.mutate({ armoredKey })}
+            onClick={() => importKey.mutate({ armoredKey, passphrase: passphrase || undefined })}
           >
             Import runtime key
           </Button>

@@ -69,12 +69,13 @@ export async function peekSecretValue(
     throw new Error(`Missing ${normalizedName}.${normalizedEnvironment}`);
   }
 
+  const privateKeyMaterial = await getArmoredPrivateKeysForOwners(
+    value.owners,
+    `${normalizedName}.${normalizedEnvironment}`,
+    dependencies,
+  );
   const { info, payload } = await cryptoBackend.decrypt({
-    armoredPrivateKeys: await getArmoredPrivateKeysForOwners(
-      value.owners,
-      `${normalizedName}.${normalizedEnvironment}`,
-      dependencies,
-    ),
+    ...privateKeyMaterial,
     ciphertext: value.encryptedValue,
   });
 

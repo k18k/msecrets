@@ -89,7 +89,7 @@ export async function getArmoredPrivateKeysForOwners(
   owners: string[],
   valueLabel: string,
   dependencies?: WorkflowDependencyOverrides,
-): Promise<string[]> {
+): Promise<{ armoredPrivateKeys: string[]; passphrases: string[] }> {
   const { keyAccess } = resolveWorkflowDependencies(dependencies);
   const normalizedOwners = [...new Set(owners.map((owner) => owner.trim()).filter(Boolean))];
 
@@ -108,7 +108,10 @@ export async function getArmoredPrivateKeysForOwners(
     throw new Error(`Private key not found for any owner of ${valueLabel}`);
   }
 
-  return availablePrivateKeys.map((privateKey) => privateKey.privateKey);
+  return {
+    armoredPrivateKeys: availablePrivateKeys.map((privateKey) => privateKey.privateKey),
+    passphrases: availablePrivateKeys.flatMap((privateKey) => privateKey.passphrases ?? []),
+  };
 }
 
 export async function getEncryptedSecretValue(
@@ -147,12 +150,13 @@ export async function decryptThenEncryptForOwners(args: {
 }): Promise<SecretDef> {
   const { cryptoBackend } = resolveWorkflowDependencies(args.dependencies);
   const nextOwners = resolveOwners(args.file, args.nextOwners);
+  const privateKeyMaterial = await getArmoredPrivateKeysForOwners(
+    args.value.owners,
+    args.valueLabel,
+    args.dependencies,
+  );
   const { payload } = await cryptoBackend.decrypt({
-    armoredPrivateKeys: await getArmoredPrivateKeysForOwners(
-      args.value.owners,
-      args.valueLabel,
-      args.dependencies,
-    ),
+    ...privateKeyMaterial,
     ciphertext: args.value.encryptedValue,
   });
   const encryptedValue = await cryptoBackend.encrypt({

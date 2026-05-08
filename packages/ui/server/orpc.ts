@@ -136,6 +136,7 @@ async function importRuntimePrivateKey(input: unknown) {
   const source = getInputObject(input);
   const armoredKey = getOptionalString(source, "armoredKey");
   const gpgFingerprint = getOptionalString(source, "gpgFingerprint");
+  const passphrase = getOptionalString(source, "passphrase");
 
   if (Boolean(armoredKey) === Boolean(gpgFingerprint)) {
     throw new Error("Provide exactly one private key source");
@@ -150,6 +151,7 @@ async function importRuntimePrivateKey(input: unknown) {
 
     upsertRuntimePrivateKey({
       fingerprint: privateKey.fingerprint,
+      passphrases: passphrase ? [passphrase] : undefined,
       privateKey: privateKey.privateKey,
       userIds: privateKey.userIds,
     });
@@ -166,7 +168,10 @@ async function importRuntimePrivateKey(input: unknown) {
     throw new Error(`Private key not found: ${gpgFingerprint}`);
   }
 
-  upsertRuntimePrivateKey(privateKey);
+  upsertRuntimePrivateKey({
+    ...privateKey,
+    passphrases: passphrase ? [passphrase] : undefined,
+  });
 
   return {
     fingerprint: privateKey.fingerprint,

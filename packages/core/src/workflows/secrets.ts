@@ -39,9 +39,7 @@ export async function createSecret(
     values: {},
   };
 
-  const hasInitialValue = input.plaintextValue !== undefined;
-
-  if (hasInitialValue) {
+  if (input.plaintextValue !== undefined) {
     if (!input.environment) {
       throw new Error("Environment is required when setting an initial value");
     }
@@ -64,7 +62,7 @@ export async function createSecret(
   });
 
   return {
-    hasInitialValue,
+    hasInitialValue: input.plaintextValue !== undefined,
     name: normalizedName,
   };
 }

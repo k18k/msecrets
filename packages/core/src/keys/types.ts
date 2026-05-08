@@ -8,6 +8,7 @@ export type PublicKey = KeyIdentity & {
 };
 
 export type PrivateKey = KeyIdentity & {
+  passphrases?: string[];
   privateKey: string;
 };
 

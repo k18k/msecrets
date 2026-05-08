@@ -5,6 +5,7 @@ import { IconAlertCircle } from "@tabler/icons-react";
 import type { WorkspacePageData } from "../../../server/lib/types.ts";
 import { useDerivedSecretsFileState } from "../../hooks/useDerivedSecretsFileState";
 import { useSecretsFileQuery } from "../../hooks/useSecretsFileQuery";
+import { SessionGpgKeyImportPrompt } from "../runtime-keys/SessionGpgKeyImportPrompt";
 import { EmptyStateCard } from "../shared/EmptyStateCard";
 import { HeaderStatusBar } from "./HeaderStatusBar";
 import { SidebarNav } from "./SidebarNav";
@@ -65,6 +66,7 @@ export function AppShellLayout({
       </AppShell.Header>
       <SidebarNav derived={derived} />
       <AppShell.Main>
+        <SessionGpgKeyImportPrompt data={data} />
         <Stack gap="md" p="md">
           {data.notice ? (
             <Alert color={data.notice.tone === "error" ? "red" : "green"} variant="light">
