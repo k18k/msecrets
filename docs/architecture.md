@@ -6,7 +6,7 @@ eyebrow: Monorepo boundaries
 lead: msecrets separates authoring, core workflows, runtime decryption, and local inspection so the committed file remains portable.
 permalink: /architecture/
 hero_shell: |-
-  CLI / UI  ->  @msecrets/core  ->  .env.ms.json
+  UI  ->  @msecrets/core  ->  .env.ms.json
                  |
   app  ->  @msecrets/ts-sdk  ->  adapters  ->  plaintext
 ---
@@ -19,8 +19,8 @@ hero_shell: |-
     <span>Validation, workflows, crypto, and file compatibility live in one place.</span>
   </div>
   <div class="stat">
-    <strong>CLI authors</strong>
-    <span>Interactive commands produce deterministic file changes.</span>
+    <strong>UI authors</strong>
+    <span>Interactive local editing produces deterministic file changes.</span>
   </div>
   <div class="stat">
     <strong>SDK runs</strong>
@@ -35,10 +35,6 @@ hero_shell: |-
     <h3><code>@msecrets/core</code></h3>
     <p>File format, validation, OpenPGP crypto, workflows, and shared runtime contracts. Core is the source of truth.</p>
   </article>
-  <article class="card blue">
-    <h3><code>msecrets</code></h3>
-    <p>Interactive CLI for authoring and local inspection. It uses core workflows instead of duplicating business logic.</p>
-  </article>
   <article class="card gold">
     <h3><code>@msecrets/ts-sdk</code></h3>
     <p>Runtime TypeScript client that validates the secrets file and asks adapters to decrypt values.</p>
@@ -49,13 +45,13 @@ hero_shell: |-
   </article>
   <article class="card">
     <h3><code>@msecrets/ui</code></h3>
-    <p>Local dashboard launched through <code>msecrets ui</code> for managing a selected secrets file on the developer machine.</p>
+    <p>Local dashboard for managing a selected secrets file on the developer machine.</p>
   </article>
 </div>
 
 ## Data flow
 
-1. The CLI or UI imports recipient public keys and writes encrypted values.
+1. The UI imports recipient public keys and writes encrypted values.
 2. The repository commits the portable `.env.ms.json` file.
 3. An application loads that file with `@msecrets/ts-sdk`.
 4. Runtime adapters provide private key access and return plaintext values.
@@ -63,6 +59,6 @@ hero_shell: |-
 ## Design boundaries
 
 - Business logic belongs in core.
-- CLI and UI are authoring surfaces, not runtime dependencies.
+- The UI is an authoring surface, not a runtime dependency.
 - The SDK and adapters are the runtime path.
 - GPG is convenience-only; OpenPGP is the portable system.

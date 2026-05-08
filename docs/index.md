@@ -10,10 +10,8 @@ primary_label: Quick start
 secondary_link: "/runtime/"
 secondary_label: Runtime SDK
 hero_shell: |-
-  npm install -g msecrets
-  msecrets init
-  msecrets import-key
-  msecrets secret set DB_PASSWORD production
+  npm install -g @msecrets/ui
+  @msecrets/ui .env.ms.json
 ---
 
 <div class="intro-strip">
@@ -49,36 +47,27 @@ hero_shell: |-
     <h3>Works with code review</h3>
     <p>Environment changes are file changes. Teams can review when a secret is added, renamed, shared, or revoked.</p>
   </article>
-  <article class="card red">
-    <span class="kicker">Small surface</span>
-    <h3>Thin CLI, real SDK</h3>
-    <p>The CLI authors secrets; applications consume them through the SDK and adapters instead of shelling out to tools at runtime.</p>
-  </article>
 </div>
 
 ## Quick start
 
 {: #quick-start }
 
-Install the authoring CLI and initialize a repository secrets file.
+Install the local authoring UI and open a repository secrets file.
 
 ```bash
-npm install -g msecrets
-msecrets init
-msecrets import-key
-msecrets env add production
-msecrets secret create DB_PASSWORD
-msecrets secret set DB_PASSWORD production
+npm install -g @msecrets/ui
+@msecrets/ui .env.ms.json
 ```
 
-The result is an encrypted `.env.ms.json` file suitable for committing to Git.
+The UI can initialize the file, import keys, manage environments, and set encrypted values. The result is an encrypted `.env.ms.json` file suitable for committing to Git.
 
 ## How the pieces fit
 
 <div class="cards two">
   <article class="card accent">
     <h3>Authoring</h3>
-    <p>Use the <a href="{{ '/cli/' | relative_url }}">CLI</a> or <a href="{{ '/ui/' | relative_url }}">local UI</a> to manage environments, recipient public keys, and encrypted values. Core workflows keep file changes deterministic.</p>
+    <p>Use the <a href="{{ '/ui/' | relative_url }}">local UI</a> to manage environments, recipient public keys, and encrypted values. Core workflows keep file changes deterministic.</p>
   </article>
   <article class="card blue">
     <h3>Runtime</h3>
@@ -107,6 +96,6 @@ The result is an encrypted `.env.ms.json` file suitable for committing to Git.
   </article>
   <article class="card">
     <h3><a href="{{ '/architecture/' | relative_url }}">Architecture</a></h3>
-    <p>See how core, CLI, SDK, adapters, and UI fit together.</p>
+    <p>See how core, the UI, the SDK, and adapters fit together.</p>
   </article>
 </div>

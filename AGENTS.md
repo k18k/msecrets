@@ -22,10 +22,6 @@ Monorepo structure:
   - Pure logic
   - File format, validation, workflows
   - OpenPGP-native crypto and shared runtime contracts
-- `packages/cli`
-  - Interactive CLI (commander + inquirer)
-  - Uses core workflows
-  - Owns the publishable `msecrets` CLI artifact
 - `packages/ts-sdk`
   - Runtime consumption layer
   - Adapter-based decryption client
@@ -55,17 +51,17 @@ Agents MUST:
 ### 2. Core is the source of truth
 
 - All business logic belongs in `@msecrets/core`.
-- CLI and UI must stay thin.
+- UI must stay thin.
 
 Agents MUST:
 
-- Never duplicate core logic in CLI/UI/SDK layers.
+- Never duplicate core logic in UI/SDK layers.
 - Extend core workflows instead of reimplementing behavior elsewhere.
 - Keep validation close to the file format and workflow boundaries.
 
 ### 3. SDK and adapters are the runtime path
 
-- The CLI is the authoring interface.
+- The UI is the authoring interface.
 - The SDK is the primary runtime interface.
 - Adapters provide runtime key access.
 
@@ -119,7 +115,6 @@ Implications:
 - Use `mise` only as the optional Node.js 24 shim provider in this repository.
 - Prefer commands like `mise exec node@24 -- ...` over assuming globally installed Node.js.
 - Use npm workspaces for install, script, test, and verification workflows.
-- Bun is not a repo orchestration tool; only the deferred CLI package bundling script still depends on Bun until that packaging path is redesigned.
 - If Node.js 24 is not available through `mise`, report that clearly before making assumptions about local availability.
 - When finishing implementation work, do not automatically run tests, smoke tests, lockfile generation, `npm install`, or similar validation chores unless they are explicitly part of the task or clearly necessary to complete it. Instead, describe the remaining developer-owned validation steps in the final response.
 
@@ -153,7 +148,7 @@ Implications:
 
 ## What Agents MUST NOT do
 
-- Add business logic to CLI/UI.
+- Add business logic to UI.
 - Modify anything under `packages/ui` unless the user explicitly asks for UI work.
 - Hardcode environment-specific behavior.
 - Introduce hidden state.
@@ -182,8 +177,6 @@ Agents MAY improve these incrementally when the change preserves compatibility a
 2. Stored public keys remain the encryption source of truth.
 3. SDK handles runtime decryption.
 4. Adapters provide private keys only.
-5. CLI remains focused on authoring and local inspection.
-
 ---
 
 ## Mental Model

@@ -27,6 +27,4 @@ jobs:
 
       - run: npm publish --workspace @msecrets/ts-sdk --access public --provenance
 
-      - run: npm publish --workspace @msecrets/cli --access public --provenance
-
       - run: npm publish --workspace @msecrets/ui --access public --provenance

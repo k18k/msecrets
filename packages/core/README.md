@@ -35,4 +35,4 @@ npm --workspace @msecrets/core run build
 
 ## Notes
 
-Business logic belongs here. CLI/UI/SDK should remain thin wrappers over core workflows.
+Business logic belongs here. UI/SDK should remain thin wrappers over core workflows.

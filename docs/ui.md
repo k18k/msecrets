@@ -3,12 +3,10 @@ layout: default
 title: UI
 description: Local browser UI for managing msecrets workspaces.
 eyebrow: Local authoring dashboard
-lead: The msecrets UI is a local browser dashboard for inspecting and editing the same portable secrets file managed by the CLI.
+lead: The msecrets UI is a local browser dashboard for inspecting and editing the portable msecrets file.
 permalink: /ui/
 hero_shell: |-
-  msecrets ui
-  msecrets ui --config .env.ms.json
-  npx @msecrets/ui .env.ms.json --port 9842
+  npx @msecrets/ui
 ---
 
 ## What the UI is
@@ -25,7 +23,7 @@ It does not replace the runtime SDK. Applications should still consume secrets t
   </article>
   <article class="card blue">
     <span class="kicker">File-native</span>
-    <h3>Same contract as CLI</h3>
+    <h3>Same portable contract</h3>
     <p>All durable changes are edits to the portable msecrets file: environments, public keys, secrets, encrypted values, and owners.</p>
   </article>
   <article class="card gold">
@@ -40,13 +38,13 @@ It does not replace the runtime SDK. Applications should still consume secrets t
 From a project that already uses msecrets, launch the UI against the default file:
 
 ```bash
-msecrets ui
+npx @msecrets/ui .env.ms.json
 ```
 
 Or point it at a specific file:
 
 ```bash
-msecrets ui --config secrets.ms.json
+npx @msecrets/ui secrets.ms.json
 ```
 
 The standalone UI package accepts the workspace file as the first positional argument:
@@ -123,8 +121,8 @@ The UI should stay an authoring layer. Business rules, validation, encryption, s
 - Private keys imported for runtime/peek workflows are temporary and kept out of `.env.ms.json`.
 - Decrypted plaintext is only shown when matching runtime private key material is available.
 
-## When to use CLI vs UI
+## When to use the UI
 
-Use the CLI for quick terminal workflows, scripts, and focused one-off edits. Use the UI when you want a visual overview of environments, recipient keys, ownership, diagnostics, and value coverage before committing a file change.
+Use the UI when you want a visual overview of environments, recipient keys, ownership, diagnostics, and value coverage before committing a file change.
 
 Use the SDK in application code; do not shell out to the UI or depend on a local browser dashboard at runtime.

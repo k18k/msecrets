@@ -18,7 +18,6 @@ This monorepo ships publishable npm packages for:
 
 ## Packages
 
-- `@msecrets/cli` (CLI): interactive authoring and UI launcher
 - `@msecrets/core` (private): file contract, validation, workflows, crypto
 - `@msecrets/ts-sdk`: runtime secret reader/decryptor and adapter exports
 - `@msecrets/ui`: local UI runtime binary
