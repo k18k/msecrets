@@ -17,8 +17,26 @@ npx msecrets init                      # msecrets.json + your key (OS keychain w
 npx msecrets set DATABASE_URL          # prompts for the value
 npx msecrets                           # terminal UI: every secret in every environment
 npx msecrets run -- npm start          # secrets as environment variables, for any language
-node --import @msecrets/ts-sdk/register server.js   # or the Node.js preload
 ```
+
+In TypeScript or JavaScript, import the file and get your secrets as a typed object:
+
+```bash
+npm install @msecrets/ts-sdk
+```
+
+```ts
+import { createClient } from "@msecrets/ts-sdk";
+import file from "./msecrets.json" with { type: "json" };
+
+const secrets = createClient(file); // verifies and decrypts the environment, or throws
+secrets.DATABASE_URL; // string, names come from your msecrets.json
+secrets.DATABSE_URL; // type error
+```
+
+The environment is `MSECRETS_ENV` (or `{ env: "production" }`), and the private key comes from your keychain on a
+developer machine or from `MSECRETS_IDENTITY` in CI and containers. Libraries that read `process.env` get the values
+through `injectEnv(file)`. See the [runtime docs](https://k18k.github.io/msecrets/runtime/).
 
 **Documentation: https://k18k.github.io/msecrets/**
 
@@ -39,7 +57,7 @@ node --import @msecrets/ts-sdk/register server.js   # or the Node.js preload
 | Package                               |                                                                                       |
 | ------------------------------------- | ------------------------------------------------------------------------------------- |
 | [`@msecrets/ui`](packages/ui)         | The `msecrets` CLI and terminal UI.                                                   |
-| [`@msecrets/ts-sdk`](packages/ts-sdk) | Runtime SDK: `load()`, typed `createClient()`, and the `register` preload.            |
+| [`@msecrets/ts-sdk`](packages/ts-sdk) | Runtime SDK: `createClient(file)` returns your typed secrets; `injectEnv(file)`.      |
 | `packages/core`                       | Private: age, keys, the file format, operations, identity sources. Bundled into both. |
 
 Both packages have no dependencies and run on Node.js 20 or newer on Linux, macOS, and Windows.

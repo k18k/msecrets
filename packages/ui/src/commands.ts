@@ -1102,8 +1102,10 @@ async function decryptEnvironment(
   const environment = singleEnvironment(context, document, flags);
   const loaded = await context.loadedIdentities();
   const source: IdentitySource = { label: "msecrets CLI", load: () => loaded };
-  const client = createClient({ file: context.path, env: environment, identities: [source] });
-  return { environment, values: client.all() };
+  return {
+    environment,
+    values: createClient(document, { env: environment, identities: [source] }),
+  };
 }
 
 const run: Command = {

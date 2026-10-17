@@ -20,7 +20,7 @@ hero_shell: |-
   </article>
   <article class="card blue">
     <h3><code>@msecrets/ts-sdk</code></h3>
-    <p>Runtime: <code>createClient</code>, <code>load</code>, <code>injectEnv</code>, and the <code>register</code> preload. ESM, CommonJS, and type declarations.</p>
+    <p>Runtime: <code>createClient</code> turns an imported secrets file into typed values; <code>injectEnv</code> fills <code>process.env</code>. ESM, CommonJS, and type declarations.</p>
   </article>
   <article class="card gold">
     <h3><code>@msecrets/ui</code></h3>
@@ -43,7 +43,7 @@ hero_shell: |-
 ```text
 packages/core      src/crypto (age, bech32, ssh, bcrypt_pbkdf), keys, document, values, status,
                    operations, store, sources, keychain; test vectors and tests
-packages/ts-sdk    src/index.ts, src/register.ts
+packages/ts-sdk    src/index.ts
 packages/ui        src/cli.ts, commands.ts, tui/, git.ts, spawn.ts
 scripts            verify-packages.ts: pack, install offline, and exercise the published packages
 docs               this site and the JSON schema

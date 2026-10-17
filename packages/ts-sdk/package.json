@@ -25,10 +25,7 @@
     "schema"
   ],
   "type": "module",
-  "sideEffects": [
-    "./dist/register.mjs",
-    "./dist/register.cjs"
-  ],
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
@@ -42,10 +39,6 @@
         "types": "./dist/index.d.cts",
         "default": "./dist/index.cjs"
       }
-    },
-    "./register": {
-      "import": "./dist/register.mjs",
-      "require": "./dist/register.cjs"
     },
     "./package.json": "./package.json"
   },

@@ -11,35 +11,46 @@ Create and edit the secrets file with the [`msecrets` CLI](https://www.npmjs.com
 
 ## Use it
 
-### No code changes: preload
-
-```bash
-node --import @msecrets/ts-sdk/register server.js     # ESM
-node --require @msecrets/ts-sdk/register server.js    # CommonJS
-```
-
-Every secret of the selected environment becomes an environment variable before your app starts. Variables that
-are already set win. If anything is missing, tampered with, or unreadable, the process stops with a clear error.
-
-### Load everything
-
-```ts
-import { load } from "@msecrets/ts-sdk";
-
-const secrets = load(); // { DATABASE_URL: "…", STRIPE_KEY: "…" }, frozen
-```
-
-`load()` returns the complete environment or throws: a running app never sees half of its secrets.
-
-### Typed access
+Import your secrets file and pass it to `createClient`. You get back an object shaped like your secrets:
 
 ```ts
 import { createClient } from "@msecrets/ts-sdk";
 import file from "./msecrets.json" with { type: "json" };
 
-const secrets = createClient({ file, env: "production" });
-secrets.get("DATABASE_URL"); // string
-secrets.get("DATABSE_URL"); // type error: names come from your secrets file
+const secrets = createClient(file);
+
+secrets.DATABASE_URL; // string
+secrets.SENTRY_DSN; // string | undefined: limited to some environments in the file
+secrets.DATABSE_URL; // type error: names come from your msecrets.json
+```
+
+- **Complete or nothing:** `createClient` verifies and decrypts every secret of the environment up front, and throws
+  if one is missing, tampered with, or unreadable. A running app never sees half of its secrets.
+- **Typed:** secret names and types come from the imported JSON, so a renamed or deleted secret is a compile error.
+- **Safe to log by accident:** the result is frozen, and `console.log(secrets)` prints only the names.
+
+TypeScript needs `"resolveJsonModule": true`. With `"module": "nodenext"`, import with `with { type: "json" }` as
+above; with a bundler, `import file from "./msecrets.json"` is enough. In CommonJS:
+`createClient(require("./msecrets.json"))`.
+
+### Libraries that read `process.env`
+
+```ts
+import { injectEnv } from "@msecrets/ts-sdk";
+import file from "./msecrets.json" with { type: "json" };
+
+injectEnv(file); // before the code that reads process.env; variables that are already set win
+```
+
+Not in Node.js, or no code changes at all? `msecrets run -- <command>` from
+[`@msecrets/ui`](https://www.npmjs.com/package/@msecrets/ui) passes the secrets as environment variables.
+
+## Environment
+
+`env` option, else `MSECRETS_ENV`, else `development` when it exists, else the only environment of the file:
+
+```ts
+const secrets = createClient(file, { env: "production" });
 ```
 
 ## Where the private key comes from
@@ -55,29 +66,19 @@ By default the SDK looks, in this order, at:
 Pass `identities` to choose explicitly. Strings are keys or source specs:
 
 ```ts
-createClient({ identities: ["env:PROD_KEY", "file:/etc/app/msecrets.key"] });
+createClient(file, { identities: ["env:PROD_KEY", "file:/etc/app/msecrets.key"] });
 ```
-
-The key is only loaded when the first value is decrypted.
-
-## Environment
-
-`env` option, else `MSECRETS_ENV`, else `development` when it exists, else the only environment of the file.
 
 ## API
 
-|                                                                                       |                                                                                        |
-| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `createClient(options?)`                                                              | A client for one environment.                                                          |
-| `client.get(name)`                                                                    | Verifies and decrypts one value.                                                       |
-| `client.has(name)` / `client.keys()`                                                  | What has a value in this environment (no key needed).                                  |
-| `client.all()`                                                                        | Every value of the environment; throws if the environment is incomplete.               |
-| `load(options?)`                                                                      | `createClient(options).all()`.                                                         |
-| `injectEnv(options?)`                                                                 | Writes the environment into `process.env` (`override: true` to replace set variables). |
-| `fromEnv`, `fromFile`, `fromCommand`, `fromKeychain`, `fromString`, `parseSourceSpec` | Identity sources.                                                                      |
+|                                                                                       |                                                                                                  |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `createClient(file, options?)`                                                        | Every secret of the environment as a frozen, typed object; throws if anything is wrong.          |
+| `injectEnv(file, options?)`                                                           | Writes the environment into `process.env` (`override: true` to replace set variables, `target`). |
+| `Secrets<typeof file>`                                                                | The type of the result, e.g. to pass the secrets around.                                         |
+| `fromEnv`, `fromFile`, `fromCommand`, `fromKeychain`, `fromString`, `parseSourceSpec` | Identity sources.                                                                                |
 
-Options: `file` (parsed file or path; default: `MSECRETS_FILE`, else `msecrets.json` in the working directory or a
-parent), `env`, `identities`, `cwd`.
+Options: `env`, `identities`.
 
 Errors are `MsecretsError` instances with a `code`: `NOT_FOUND`, `ACCESS_DENIED`, `SIGNATURE`, `INVALID_FILE`,
 `IDENTITY_SOURCE`, `UNSUPPORTED`, …

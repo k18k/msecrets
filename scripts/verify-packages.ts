@@ -99,40 +99,54 @@ try {
   const identity = readFileSync(join(fixtures, "production.identity.txt"), "utf8");
   const env = { MSECRETS_ENV: "production", MSECRETS_IDENTITY: identity };
 
-  assert.equal(
-    node(
-      [
-        "--input-type=module",
-        "-e",
-        `import { load } from "@msecrets/ts-sdk"; console.log(load().DATABASE_URL)`,
-      ],
-      app,
-      env,
-    ),
-    "postgres://db.internal/prod",
+  // A consumer imports its secrets file, in ESM and CommonJS, and typechecks against the published types.
+  writeFileSync(
+    join(app, "app.mjs"),
+    `import { createClient } from "@msecrets/ts-sdk";\nimport file from "./msecrets.json" with { type: "json" };\nconsole.log(createClient(file).DATABASE_URL);\n`,
   );
-  assert.equal(
-    node(["-e", `console.log(require("@msecrets/ts-sdk").load().SENTRY_DSN)`], app, env),
-    "https://sentry.example/1",
+  writeFileSync(
+    join(app, "app.cjs"),
+    `const { createClient } = require("@msecrets/ts-sdk");\nconsole.log(createClient(require("./msecrets.json")).SENTRY_DSN);\n`,
   );
-  for (const flag of ["--import", "--require"]) {
-    assert.equal(
-      node(
-        [flag, "@msecrets/ts-sdk/register", "-e", "console.log(process.env.DATABASE_URL)"],
-        app,
-        env,
-      ),
-      "postgres://db.internal/prod",
-    );
-  }
-  for (const types of ["index.d.mts", "index.d.cts"]) {
-    assert.match(
-      readFileSync(join(app, "node_modules", "@msecrets", "ts-sdk", "dist", types), "utf8"),
-      /createClient/,
-    );
-  }
+  assert.equal(node(["app.mjs"], app, env), "postgres://db.internal/prod");
+  assert.equal(node(["app.cjs"], app, env), "https://sentry.example/1");
+
+  writeFileSync(
+    join(app, "app.mts"),
+    [
+      `import { createClient, injectEnv } from "@msecrets/ts-sdk";`,
+      `import file from "./msecrets.json" with { type: "json" };`,
+      `const secrets = createClient(file, { env: "production" });`,
+      `const url: string = secrets.DATABASE_URL;`,
+      `const dsn: string | undefined = secrets.SENTRY_DSN;`,
+      `// @ts-expect-error: limited to some environments`,
+      `const required: string = secrets.SENTRY_DSN;`,
+      `// @ts-expect-error: not a secret in the file`,
+      `secrets.DATABSE_URL;`,
+      `// @ts-expect-error: frozen`,
+      `secrets.DATABASE_URL = "";`,
+      `const names: string[] = injectEnv(file);`,
+      `export { dsn, names, required, url };`,
+      ``,
+    ].join("\n"),
+  );
+  writeFileSync(
+    join(app, "tsconfig.json"),
+    JSON.stringify({
+      compilerOptions: {
+        module: "nodenext",
+        strict: true,
+        noEmit: true,
+        resolveJsonModule: true,
+        types: ["node"],
+        typeRoots: [join(root, "node_modules", "@types")],
+      },
+      files: ["app.mts"],
+    }),
+  );
+  node([join(root, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.json"], app);
   console.log(
-    "✓ @msecrets/ts-sdk: ESM, CommonJS, register (--import and --require), and types work when installed",
+    "✓ @msecrets/ts-sdk: JSON imports in ESM and CommonJS, and typed secrets from the published declarations",
   );
 
   const version = (

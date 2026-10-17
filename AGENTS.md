@@ -20,7 +20,7 @@ This repository implements **msecrets v4**: encrypted secrets that live in the r
   - `src/operations.ts`: all mutations, as transactions on a document copy
   - `src/store.ts`: file discovery and atomic, conflict-checked writes
   - `src/sources.ts`, `src/keychain.ts`: where private keys come from
-- `packages/ts-sdk` (`@msecrets/ts-sdk`): runtime client, `load`, `injectEnv`, `register`
+- `packages/ts-sdk` (`@msecrets/ts-sdk`): `createClient(file)` (typed secrets from an imported file), `injectEnv`
 - `packages/ui` (`@msecrets/ui`, bin `msecrets`): CLI commands, terminal UI, `run`, git integration
 
 Packages import core through relative paths; tsdown bundles it. Published packages must have **no dependencies**.
@@ -38,6 +38,8 @@ Packages import core through relative paths; tsdown bundles it. Published packag
 
 - `msecrets.json` v4 must stay readable by every v4 release. Breaking it requires explicit instruction and a new `version`.
 - The file holds no runtime-only or machine-specific data. Keys and identity sources never come from the file.
+- The SDK takes the imported file (`createClient(file)`) and never searches for or reads it; its secret names
+  type the result.
 - Keep `packages/ts-sdk/schema/v4.json` in sync with `document.ts` (a test enforces the name and key patterns).
 
 ### 3. Security invariants

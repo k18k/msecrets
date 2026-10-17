@@ -70,15 +70,14 @@ npx msecrets git setup            # readable diffs and structural merges
 git add msecrets.json .gitattributes
 ```
 
-In application code, either keep using `process.env` with the preload, or use the SDK:
-
-```bash
-node --import @msecrets/ts-sdk/register server.js
-```
+In TypeScript or JavaScript, import the file and get your secrets as a typed object:
 
 ```ts
-import { load } from "@msecrets/ts-sdk";
-const { DATABASE_URL } = load();
+import { createClient } from "@msecrets/ts-sdk";
+import file from "./msecrets.json" with { type: "json" };
+
+const secrets = createClient(file);
+secrets.DATABASE_URL; // string, typed from msecrets.json
 ```
 
 ## How the pieces fit

@@ -3,45 +3,48 @@ layout: default
 title: Runtime SDK
 description: Read msecrets values at runtime with @msecrets/ts-sdk.
 eyebrow: "@msecrets/ts-sdk"
-lead: Applications read the committed file and decrypt their environment with a synchronous, dependency-free SDK, or without any code through a preload.
+lead: Applications import the committed file and get their environment back as a typed object, from a synchronous, dependency-free SDK.
 permalink: /runtime/
 hero_shell: |-
   npm install @msecrets/ts-sdk
-  node --import @msecrets/ts-sdk/register server.js
 ---
 
-## Three ways in
+## Import the file, get typed secrets
+
+```ts
+import { createClient } from "@msecrets/ts-sdk";
+import file from "./msecrets.json" with { type: "json" };
+
+const secrets = createClient(file);
+
+secrets.DATABASE_URL; // string
+secrets.SENTRY_DSN; // string | undefined: limited to some environments in the file
+secrets.DATABSE_URL; // type error: names come from your msecrets.json
+```
 
 <div class="cards three">
   <article class="card accent">
-    <span class="kicker">No code</span>
-    <h3>Preload</h3>
-    <p><code>node --import @msecrets/ts-sdk/register app.js</code> (or <code>--require</code>) fills <code>process.env</code> before your app starts.</p>
+    <span class="kicker">Complete</span>
+    <h3>All or nothing</h3>
+    <p>Every secret of the environment is verified and decrypted up front. If one is missing, tampered with, or unreadable, <code>createClient</code> throws: a running app never sees half of its secrets.</p>
   </article>
   <article class="card blue">
-    <span class="kicker">One call</span>
-    <h3>load()</h3>
-    <p>Returns the complete, frozen environment or throws. A running app never sees half of its secrets.</p>
+    <span class="kicker">Typed</span>
+    <h3>From your file</h3>
+    <p>Names and types come from the imported JSON, so renaming or deleting a secret is a compile error wherever it is used.</p>
   </article>
   <article class="card gold">
-    <span class="kicker">Typed</span>
-    <h3>createClient()</h3>
-    <p>With a JSON import, secret names are checked by TypeScript. Values are decrypted on demand.</p>
+    <span class="kicker">Quiet</span>
+    <h3>Safe to log</h3>
+    <p>The result is frozen, and <code>console.log(secrets)</code> prints only the names, never the values.</p>
   </article>
 </div>
 
-```ts
-import { createClient, load } from "@msecrets/ts-sdk";
-import file from "./msecrets.json" with { type: "json" };
+TypeScript needs `"resolveJsonModule": true`. With `"module": "nodenext"`, import with `with { type: "json" }`;
+with a bundler, `import file from "./msecrets.json"` is enough. In CommonJS: `createClient(require("./msecrets.json"))`.
 
-const all = load({ env: "production" });
-
-const secrets = createClient({ file, env: "production" });
-secrets.get("DATABASE_URL"); // typed from the file
-secrets.has("SENTRY_DSN"); // no key needed
-```
-
-Not using Node.js directly? `msecrets run -- <command>` does the same for any language.
+Libraries that read `process.env` (ORMs, frameworks) get the values through `injectEnv(file)`, called before them;
+variables that are already set win. Not using Node.js? `msecrets run -- <command>` does the same for any language.
 
 ## Choosing the environment
 
@@ -50,7 +53,7 @@ Not using Node.js directly? `msecrets run -- <command>` does the same for any la
 
 ## Where keys come from
 
-The SDK loads the private key on the first decryption, from the first of these that is set:
+The SDK loads the private key from the first of these that is set:
 
 1. `MSECRETS_IDENTITY`: the key itself. Read once, then deleted from `process.env`.
 2. `MSECRETS_IDENTITY_FILE`: a key file; `MSECRETS_PASSPHRASE` unlocks passphrase-protected files.
@@ -61,8 +64,8 @@ The SDK loads the private key on the first decryption, from the first of these t
 To be explicit, pass `identities`:
 
 ```ts
-createClient({ identities: ["file:/etc/app/msecrets.key"] });
-createClient({ identities: [fromEnv("APP_MSECRETS_KEY")] });
+createClient(file, { identities: ["file:/etc/app/msecrets.key"] });
+createClient(file, { identities: [fromEnv("APP_MSECRETS_KEY")] });
 ```
 
 ## Containers and CI
@@ -82,7 +85,7 @@ services:
     image: my-api
     environment:
       MSECRETS_ENV: production
-    command: node --import @msecrets/ts-sdk/register server.js
+    command: node server.js
     secrets: [msecrets_identity]
 secrets:
   msecrets_identity:
@@ -105,12 +108,12 @@ key. Give each deployment target its own key so you can revoke one without touch
 
 |                                                                                                     |                                                                                                                                |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `createClient(options?)`                                                                            | Client for one environment: `environment`, `get`, `has`, `keys`, `all`, `identities`.                                          |
-| `load(options?)`                                                                                    | Every value of the environment, frozen; throws if incomplete.                                                                  |
-| `injectEnv(options?)`                                                                               | Writes the environment into `process.env`; set variables win unless `override: true`.                                          |
+| `createClient(file, options?)`                                                                      | Every secret of the environment as a frozen object typed by the file; throws if anything is wrong.                            |
+| `injectEnv(file, options?)`                                                                         | Writes the environment into `process.env`; set variables win unless `override: true`.                                          |
+| `Secrets<typeof file>`                                                                              | The type of the result.                                                                                                        |
 | `fromEnv`, `fromFile`, `fromCommand`, `fromKeychain`, `fromString`, `parseSourceSpec`, `autoSource` | Identity sources.                                                                                                              |
 | `MsecretsError`, `isMsecretsError(error, code?)`                                                    | Errors carry a `code`: `NOT_FOUND`, `ACCESS_DENIED`, `SIGNATURE`, `INVALID_FILE`, `IDENTITY_SOURCE`, `UNSUPPORTED`, `USAGE`, … |
 
-Options: `file` (parsed file or path), `env`, `identities`, `cwd`.
+Options: `env`, `identities`.
 
-Everything is synchronous, so it also works in CommonJS preloads, configuration files, and module initialization.
+Everything is synchronous, so it also works in CommonJS, configuration files, and module initialization.

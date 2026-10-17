@@ -1,8 +1,6 @@
 import {
   type IdentitySource,
-  type LoadedIdentity,
   MsecretsError,
-  type SecretsDocument,
   autoSource,
   chooseEnvironment,
   fromString,
@@ -10,11 +8,8 @@ import {
   own,
   parseDocument,
   parseSourceSpec,
-  readDocumentFile,
-  resolveDocumentFile,
   revealValue,
   secretEnvironments,
-  suggest,
 } from "../../core/src/index.ts";
 
 export {
@@ -32,15 +27,27 @@ export {
   parseSourceSpec,
 } from "../../core/src/index.ts";
 
-/** Anything shaped like a parsed `msecrets.json`, e.g. `import file from "./msecrets.json" with { type: "json" }`. */
-export type SecretsFileLike = { secrets: object };
+/**
+ * A parsed `msecrets.json`. Import it so TypeScript knows your secret names:
+ * `import file from "./msecrets.json" with { type: "json" }`.
+ */
+export type SecretsFile = { secrets: object };
+
+type SecretNames<F extends SecretsFile> = Extract<keyof F["secrets"], string>;
+
+/**
+ * The decrypted environment, shaped like the secrets file. Secrets limited to
+ * some environments (`"environments": [...]` in the file) may be absent.
+ */
+export type Secrets<F extends SecretsFile> = [SecretNames<F>] extends [never]
+  ? Readonly<Record<string, string | undefined>>
+  : {
+      readonly [Name in SecretNames<F>]: F["secrets"][Name] extends { environments: unknown }
+        ? string | undefined
+        : string;
+    };
 
 export type ClientOptions = {
-  /**
-   * The parsed secrets file (a JSON import gives typed secret names) or a path to it.
-   * Default: MSECRETS_FILE, else `msecrets.json` in the working directory or its parents.
-   */
-  file?: SecretsFileLike | string;
   /** Environment. Default: MSECRETS_ENV, else "development" if it exists, else the only environment. */
   env?: string;
   /**
@@ -50,159 +57,59 @@ export type ClientOptions = {
    * MSECRETS_IDENTITY_SOURCE, container secrets, then the developer config).
    */
   identities?: readonly (IdentitySource | string)[];
-  /** Working directory used to find the secrets file. */
-  cwd?: string;
 };
 
-export type Client<Name extends string = string> = {
-  /** The environment this client reads. */
-  readonly environment: string;
-  /** Secret names that have a value in this environment. */
-  keys(): Name[];
-  /** Whether the secret has a value in this environment. */
-  has(name: string): name is Name;
-  /** Verifies and decrypts one value. Throws if it is missing, tampered with, or unreadable. */
-  get(name: Name): string;
-  /**
-   * Verifies and decrypts every secret of this environment. Throws when any
-   * secret that applies to the environment has no value, so a running app
-   * always gets the complete set.
-   */
-  all(): Readonly<Record<Name, string>>;
-  /** Where each loaded identity came from (for diagnostics; contains no secrets). */
-  identities(): string[];
-};
-
-type SecretNames<F extends SecretsFileLike> = Extract<keyof F["secrets"], string>;
-
-function toSource(entry: IdentitySource | string, cwd: string | undefined): IdentitySource {
+function toSource(entry: IdentitySource | string): IdentitySource {
   if (typeof entry !== "string") {
     return entry;
   }
   const trimmed = entry.trim();
   return /^AGE-SECRET-KEY-|^-----BEGIN /i.test(trimmed)
     ? fromString(trimmed)
-    : parseSourceSpec(trimmed, cwd === undefined ? {} : { cwd });
-}
-
-function loadDocument(options: ClientOptions): { document: SecretsDocument; label: string } {
-  if (options.file !== undefined && typeof options.file !== "string") {
-    return { document: parseDocument(options.file), label: "secrets file" };
-  }
-  const path = resolveDocumentFile({
-    file: options.file,
-    ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
-  });
-  return { document: readDocumentFile(path), label: path };
+    : parseSourceSpec(trimmed);
 }
 
 /**
- * Creates a client for one environment of a secrets file. Everything is
- * synchronous; identities are loaded on first decryption.
+ * Verifies and decrypts every secret of one environment of an imported
+ * secrets file: `const secrets = createClient(file); secrets.DATABASE_URL`.
+ * Throws if the environment is incomplete or any value is tampered with or
+ * unreadable, so a running app never sees half of its secrets. The result is
+ * frozen, and `console.log` shows only its names.
  */
-export function createClient<F extends SecretsFileLike>(
-  options: ClientOptions & { file: F },
-): Client<SecretNames<F>>;
-export function createClient(options?: ClientOptions): Client;
-export function createClient(options: ClientOptions = {}): Client {
-  const { document, label } = loadDocument(options);
+export function createClient<F extends SecretsFile>(
+  file: F,
+  options: ClientOptions = {},
+): Secrets<F> {
+  const document = parseDocument(file);
   const environment = chooseEnvironment(document, options.env).name;
-  const sources = options.identities?.map((entry) => toSource(entry, options.cwd)) ?? [
-    autoSource(),
-  ];
-  const cache = new Map<string, string>();
-  let loaded: LoadedIdentity[] | undefined;
-
-  const applicable = () =>
-    Object.keys(document.secrets).filter((name) => {
-      const secret = own(document.secrets, name);
-      return secret !== undefined && secretEnvironments(document, secret).includes(environment);
-    });
-
-  const identities = (): LoadedIdentity[] => {
-    if (!loaded) {
-      loaded = loadIdentities(sources);
-      if (!loaded.length) {
-        throw new MsecretsError(
-          "IDENTITY_SOURCE",
-          `No msecrets identity found to decrypt ${label}. Set MSECRETS_IDENTITY (or MSECRETS_IDENTITY_FILE / MSECRETS_IDENTITY_SOURCE), mount /run/secrets/msecrets_identity, or run \`msecrets init\` on a developer machine`,
-        );
-      }
-    }
-    return loaded;
-  };
-
-  const has = (name: string): boolean => {
-    const secret = own(document.secrets, name);
-    return (
-      secret !== undefined &&
-      secretEnvironments(document, secret).includes(environment) &&
-      own(secret.values, environment) !== undefined
+  const applicable = Object.entries(document.secrets).filter(([, secret]) =>
+    secretEnvironments(document, secret).includes(environment),
+  );
+  const names = applicable.map(([name]) => name);
+  const missing = applicable.filter(([, secret]) => !own(secret.values, environment));
+  if (missing.length) {
+    throw new MsecretsError(
+      "NOT_FOUND",
+      `Environment "${environment}" is incomplete; these secrets have no value: ${missing.map(([name]) => name).join(", ")}`,
     );
-  };
+  }
 
-  const get = (name: string): string => {
-    const cached = cache.get(name);
-    if (cached !== undefined) {
-      return cached;
-    }
-
-    const secret = own(document.secrets, name);
-    if (!secret) {
-      throw new MsecretsError(
-        "NOT_FOUND",
-        `Secret ${name} does not exist in ${label}${suggest(name, Object.keys(document.secrets))}`,
-      );
-    }
-    if (!secretEnvironments(document, secret).includes(environment)) {
-      throw new MsecretsError(
-        "NOT_FOUND",
-        `Secret ${name} does not apply to environment "${environment}"`,
-      );
-    }
-    if (!own(secret.values, environment)) {
-      throw new MsecretsError(
-        "NOT_FOUND",
-        `Secret ${name} has no value in environment "${environment}"`,
-      );
-    }
-
-    const value = revealValue(
-      document,
-      identities().map((entry) => entry.identity),
-      name,
-      environment,
+  const sources = options.identities?.map(toSource) ?? [autoSource()];
+  const identities = names.length ? loadIdentities(sources).map((entry) => entry.identity) : [];
+  if (names.length && !identities.length) {
+    throw new MsecretsError(
+      "IDENTITY_SOURCE",
+      "No msecrets identity found. Set MSECRETS_IDENTITY (or MSECRETS_IDENTITY_FILE / MSECRETS_IDENTITY_SOURCE), mount /run/secrets/msecrets_identity, or run `msecrets init` on a developer machine",
     );
-    cache.set(name, value);
-    return value;
-  };
+  }
 
-  return {
-    environment,
-    keys: () => applicable().filter(has),
-    has: (name: string): name is string => has(name),
-    get,
-    all() {
-      const missing = applicable().filter((name) => !has(name));
-      if (missing.length) {
-        throw new MsecretsError(
-          "NOT_FOUND",
-          `Environment "${environment}" is incomplete; these secrets have no value: ${missing.join(", ")}`,
-        );
-      }
-      return Object.freeze(Object.fromEntries(applicable().map((name) => [name, get(name)])));
-    },
-    identities: () => identities().map((entry) => entry.source),
-  };
-}
-
-/** Decrypts the complete environment: `const secrets = load()`. */
-export function load<F extends SecretsFileLike>(
-  options: ClientOptions & { file: F },
-): Readonly<Record<SecretNames<F>, string>>;
-export function load(options?: ClientOptions): Readonly<Record<string, string>>;
-export function load(options: ClientOptions = {}): Readonly<Record<string, string>> {
-  return createClient(options).all();
+  const secrets = Object.fromEntries(
+    names.map((name) => [name, revealValue(document, identities, name, environment)]),
+  );
+  Object.defineProperty(secrets, Symbol.for("nodejs.util.inspect.custom"), {
+    value: () => `Secrets (${environment}) { ${names.join(", ")} }`,
+  });
+  return Object.freeze(secrets) as Secrets<F>;
 }
 
 export type InjectOptions = ClientOptions & {
@@ -212,15 +119,18 @@ export type InjectOptions = ClientOptions & {
   target?: NodeJS.ProcessEnv;
 };
 
-/** Decrypts the complete environment into `process.env`. Returns the names that were set. */
-export function injectEnv(options: InjectOptions = {}): string[] {
+/**
+ * Decrypts the environment into `process.env`, for libraries that read it:
+ * `injectEnv(file)`. Returns the names that were set.
+ */
+export function injectEnv(file: SecretsFile, options: InjectOptions = {}): string[] {
   const target = options.target ?? process.env;
-  const secrets = load(options);
-  return Object.entries(secrets).flatMap(([name, value]) => {
+  const secrets: Readonly<Record<string, string | undefined>> = createClient(file, options);
+  return Object.keys(secrets).flatMap((name) => {
     if (!options.override && target[name] !== undefined) {
       return [];
     }
-    target[name] = value;
+    target[name] = secrets[name];
     return [name];
   });
 }
