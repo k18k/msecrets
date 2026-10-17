@@ -14,10 +14,13 @@ import {
   parseIdentities,
   parseIdentity,
   parsePublicKey,
+  readOnlyPublicKey,
 } from "../src/index.ts";
 import { readOnlyToken } from "./helpers.ts";
 
 const SSH = join(import.meta.dirname, "fixtures", "ssh");
+const unsupported = (error: unknown) =>
+  isMsecretsError(error, "UNSUPPORTED") && /Node\.js >= 24\.7/.test(error.message);
 const ssh = (name: string) => readFileSync(join(SSH, name), "utf8");
 
 describe("age identities", () => {
@@ -50,6 +53,45 @@ describe("age identities", () => {
       assert.ok(!ed25519Verify(publicKey.signingKey, Buffer.from("other"), signature));
     });
   }
+
+  test(
+    "post-quantum keys on a runtime without ML-KEM fail with a clear error",
+    { skip: supportsMlKem() ? "ML-KEM is supported here" : false },
+    () => {
+      assert.throws(() => generateIdentity({ postQuantum: true }), unsupported);
+      assert.throws(
+        () =>
+          parseIdentity(
+            "AGE-SECRET-KEY-PQ-1XX76JRALNLXDMEW0CRK45QMCCH4X06SE84UN3VPM33W6HWDX0H3SK3ZQFR",
+          ),
+        unsupported,
+      );
+      const recipient = parsePublicKey(
+        readFileSync(join(import.meta.dirname, "fixtures", "pq-recipient.txt"), "utf8"),
+      );
+      assert.equal(
+        recipient.postQuantum,
+        true,
+        "parsing post-quantum public keys works everywhere",
+      );
+      assert.throws(() => encryptAge(Buffer.from("x"), [recipient.recipient]), unsupported);
+    },
+  );
+
+  test(
+    "post-quantum key derivation matches the age specification",
+    { skip: supportsMlKem() ? false : "ML-KEM unsupported" },
+    () => {
+      const identity = parseIdentity(
+        "AGE-SECRET-KEY-PQ-1XX76JRALNLXDMEW0CRK45QMCCH4X06SE84UN3VPM33W6HWDX0H3SK3ZQFR",
+      );
+      const expected = readFileSync(
+        join(import.meta.dirname, "fixtures", "pq-recipient.txt"),
+        "utf8",
+      ).trim();
+      assert.equal(readOnlyPublicKey(identity.publicKey).token, expected);
+    },
+  );
 
   test("plain age1 recipients are read-only and match the same identity", () => {
     const identity = generateIdentity();

@@ -1,3 +1,4 @@
+import { constants } from "node:os";
 import { isAbsolute, relative } from "node:path";
 
 import {
@@ -1039,6 +1040,8 @@ export async function runTui(context: Context): Promise<number> {
       stdin.removeListener("data", onData);
       io.stdout.removeListener("resize", draw);
       process.removeListener("exit", restore);
+      process.removeListener("SIGTERM", onSignal);
+      process.removeListener("SIGHUP", onSignal);
       stdin.setRawMode?.(false);
       stdin.pause();
       restore();
@@ -1058,7 +1061,15 @@ export async function runTui(context: Context): Promise<number> {
       });
     };
 
+    // Leave the terminal usable if the process is terminated while the UI is open.
+    const onSignal = (signal: NodeJS.Signals) => {
+      stdin.setRawMode?.(false);
+      restore();
+      process.exit(128 + (constants.signals[signal] ?? 1));
+    };
     process.once("exit", restore);
+    process.once("SIGTERM", onSignal);
+    process.once("SIGHUP", onSignal);
     write("\u001b[?1049h\u001b[?25l\u001b[2J");
     stdin.setRawMode?.(true);
     stdin.on("data", onData);

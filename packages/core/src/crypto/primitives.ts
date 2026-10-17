@@ -232,7 +232,7 @@ export function supportsMlKem(): boolean {
       mlKemSupport =
         typeof api.encapsulate === "function" &&
         typeof api.decapsulate === "function" &&
-        mlKem768PublicKey(Buffer.alloc(64)).length === MLKEM768_PUBLIC_KEY_SIZE;
+        rawMlKem768PublicKey(Buffer.alloc(64)).length === MLKEM768_PUBLIC_KEY_SIZE;
     } catch {
       // Older runtimes fail to parse ML-KEM keys at all.
       mlKemSupport = false;
@@ -259,9 +259,14 @@ function mlKem768PrivateKey(seed: Uint8Array): KeyObject {
   });
 }
 
+function rawMlKem768PublicKey(seed: Uint8Array): Buffer {
+  return rawPublicKey(createPublicKey(mlKem768PrivateKey(seed)), MLKEM768_SPKI_PREFIX);
+}
+
 /** ML-KEM-768 encapsulation key for a 64-byte (d || z) seed. */
 export function mlKem768PublicKey(seed: Uint8Array): Buffer {
-  return rawPublicKey(createPublicKey(mlKem768PrivateKey(seed)), MLKEM768_SPKI_PREFIX);
+  mlKemApi();
+  return rawMlKem768PublicKey(seed);
 }
 
 export function mlKem768Encapsulate(publicKey: Uint8Array): {

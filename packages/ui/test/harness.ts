@@ -12,10 +12,13 @@ export class Output extends Writable {
   isTTY = false;
   columns = 120;
   rows = 40;
+  /** Called after every write, e.g. to answer prompts. */
+  onWrite: (() => void) | undefined;
 
   override _write(chunk: Buffer | string, _encoding: BufferEncoding, callback: () => void): void {
     this.text += chunk.toString();
     callback();
+    this.onWrite?.();
   }
 }
 
@@ -91,9 +94,7 @@ export async function interactive(
   const stderr = new Output();
   const pending = [...exchanges];
   let seen = 0;
-  const original = stderr._write.bind(stderr);
-  stderr._write = (chunk, encoding, callback) => {
-    original(chunk, encoding, callback);
+  stderr.onWrite = () => {
     const next = pending[0];
     if (next && next[0].test(stderr.text.slice(seen))) {
       seen = stderr.text.length;
