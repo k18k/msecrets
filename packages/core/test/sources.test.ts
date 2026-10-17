@@ -85,6 +85,38 @@ describe("identity sources", () => {
     );
   });
 
+  test("command: first-line mode ignores metadata lines (pass)", () => {
+    const identity = generateIdentity();
+    const output = `${identity.secret}\nurl: https://example.com\nlogin: me\n`;
+    const script = [process.execPath, "-e", `process.stdout.write(${JSON.stringify(output)})`];
+    assert.throws(
+      () => fromCommand(script).load(),
+      (error: unknown) => isMsecretsError(error, "IDENTITY_SOURCE"),
+    );
+    assert.deepEqual(tokens(fromCommand(script, { firstLine: true }).load()), [
+      identity.publicKey.token,
+    ]);
+  });
+
+  test(
+    "command: .cmd shims of password manager CLIs run on Windows",
+    { skip: process.platform === "win32" ? false : "Windows only" },
+    (t) => {
+      const directory = tempDir(t);
+      const identity = generateIdentity();
+      writeFileSync(join(directory, "identity.txt"), identity.secret);
+      writeFileSync(
+        join(directory, "fake-pm.cmd"),
+        `@type "${join(directory, "identity.txt")}"\r\n`,
+      );
+      const source = fromCommand(["fake-pm", "get", "password", "my item"], {
+        env: { ...process.env, PATH: `${directory};${process.env["PATH"] ?? ""}` },
+        cwd: directory,
+      });
+      assert.deepEqual(tokens(source.load()), [identity.publicKey.token]);
+    },
+  );
+
   test("specs map to the right sources", () => {
     assert.equal(
       parseSourceSpec("op://Private/msecrets/identity").label,

@@ -8,6 +8,7 @@ export * from "./store.ts";
 export * from "./environment.ts";
 export * from "./sources.ts";
 export * from "./keychain.ts";
+export * from "./command.ts";
 export { armor, dearmor, decryptAge, encryptAge } from "./crypto/age.ts";
 export { scryptIdentity, scryptRecipient } from "./crypto/age-recipients.ts";
 export { supportsMlKem } from "./crypto/primitives.ts";

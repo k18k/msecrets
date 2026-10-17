@@ -4,7 +4,8 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 
 import { formatDotenv, formatPowerShell, formatShell, parseDotenv } from "../src/formats.ts";
-import { planSpawn, runToCompletion, spawnCommand } from "../src/spawn.ts";
+import { planCommand as planSpawn } from "../../core/src/index.ts";
+import { runToCompletion, spawnCommand } from "../src/spawn.ts";
 import { tempDir } from "../../core/test/helpers.ts";
 
 describe("dotenv", () => {

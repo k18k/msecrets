@@ -5,11 +5,12 @@
  * repository run commands); they come from code, environment variables, or the
  * developer's own config file.
  */
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 
+import { planCommand } from "./command.ts";
 import { MsecretsError } from "./errors.ts";
 import { readKeychain } from "./keychain.ts";
 import { type Identity, parseIdentities } from "./keys.ts";
@@ -145,7 +146,7 @@ export function fromFile(
 /** Runs a command (password manager CLI) whose standard output is the identity. */
 export function fromCommand(
   argv: readonly string[],
-  options: SourceOptions & { label?: string } = {},
+  options: SourceOptions & { label?: string; firstLine?: boolean } = {},
 ): IdentitySource {
   const [command, ...args] = argv;
   if (!command) {
@@ -155,28 +156,37 @@ export function fromCommand(
   return {
     label,
     load() {
-      let output: string;
-      try {
-        output = execFileSync(command, args, {
-          encoding: "utf8",
-          // Password managers may prompt for unlock on the terminal.
-          stdio: ["inherit", "pipe", "inherit"],
-          timeout: 120_000,
-          windowsHide: true,
-          maxBuffer: 1024 * 1024,
-          env: options.env ?? process.env,
-        });
-      } catch (error) {
-        const code = (error as NodeJS.ErrnoException).code;
+      const env = options.env ?? process.env;
+      const plan = planCommand([command, ...args], { env, cwd: options.cwd ?? process.cwd() });
+      const result = spawnSync(plan.file, plan.args, {
+        encoding: "utf8",
+        // Password managers may prompt for unlock on the terminal.
+        stdio: ["inherit", "pipe", "inherit"],
+        timeout: 120_000,
+        windowsHide: true,
+        windowsVerbatimArguments: plan.verbatim,
+        maxBuffer: 1024 * 1024,
+        env,
+      });
+      if (result.error) {
+        const missing = (result.error as NodeJS.ErrnoException).code === "ENOENT";
         throw new MsecretsError(
           "IDENTITY_SOURCE",
-          code === "ENOENT"
+          missing
             ? `${label}: \`${command}\` is not installed or not on PATH`
-            : `${label} failed: ${(error as Error).message.split("\n")[0] ?? "unknown error"}`,
-          { cause: error },
+            : `${label} failed: ${result.error.message}`,
+          { cause: result.error },
         );
       }
-      return parse(output, label, options);
+      if (result.status !== 0) {
+        throw new MsecretsError(
+          "IDENTITY_SOURCE",
+          `${label} failed (exit code ${result.status ?? result.signal})`,
+        );
+      }
+      const output = result.stdout;
+      // `pass` and similar tools keep the secret on the first line and metadata below it.
+      return parse(options.firstLine ? (output.split(/\r?\n/)[0] ?? "") : output, label, options);
     },
   };
 }
@@ -246,7 +256,11 @@ export function parseSourceSpec(spec: string, options: SourceOptions = {}): Iden
         label: `Bitwarden ${value}`,
       });
     case "pass":
-      return fromCommand(["pass", "show", value], { ...options, label: `pass ${value}` });
+      return fromCommand(["pass", "show", value], {
+        ...options,
+        label: `pass ${value}`,
+        firstLine: true,
+      });
     case "cmd":
       return fromCommand(splitCommandLine(value), options);
     default:
