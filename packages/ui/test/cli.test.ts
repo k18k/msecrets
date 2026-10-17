@@ -48,6 +48,9 @@ describe("team workflow", () => {
     ok(await alice.run(["check"]));
 
     ok(await alice.run(["env", "add", "staging"]));
+    const listing = await alice.run(["ls"]);
+    assert.equal(listing.code, 0, "ls only reports problems; check fails on them");
+    assert.match(listing.stdout, /error DATABASE_URL has no value in "staging"/);
     const failing = await alice.run(["check"]);
     assert.equal(failing.code, 1);
     assert.match(failing.stdout, /DATABASE_URL has no value in "staging"/);

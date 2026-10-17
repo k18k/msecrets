@@ -57,7 +57,13 @@ The [JSON schema](https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json
 | `secrets.NAME.environments`           | Optional: the environments the secret applies to. Absent means all.                                                                        |
 | `secrets.NAME.values.ENV.to`          | Digest of the recipient keys the value is encrypted to. When it differs from the environment's current recipients, the value _needs sync_. |
 | `secrets.NAME.values.ENV.by` / `.sig` | The signing recipient and its Ed25519 signature.                                                                                           |
-| `secrets.NAME.values.ENV.data`        | Base64 of a binary age file; `base64 -d \| age -d -i key.txt` decrypts it.                                                                 |
+| `secrets.NAME.values.ENV.data`        | Base64 of a binary age file, so `age` itself can decrypt it (see below).                                                                 |
+
+## Decrypting without msecrets
+
+```bash
+jq -r '.secrets.DATABASE_URL.values.production.data' .env.ms.json | base64 -d | age -d -i key.txt
+```
 
 ## Rules
 

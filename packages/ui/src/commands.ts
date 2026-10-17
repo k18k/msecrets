@@ -453,7 +453,7 @@ function printFindings(context: Context, document: SecretsDocument): boolean {
 const ls: Command = {
   name: "ls",
   args: "",
-  summary: "Show every secret in every environment",
+  summary: "Show every secret in every environment, and any problems (use `check` to fail CI)",
   options: { json: JSON_OUTPUT },
   async run(context, _args, flags) {
     const document = context.document();
@@ -483,7 +483,7 @@ const ls: Command = {
           2,
         ),
       );
-      return report.ok ? 0 : 1;
+      return 0;
     }
 
     if (!Object.keys(document.secrets).length) {
@@ -522,7 +522,7 @@ const ls: Command = {
       context.print();
       printFindings(context, document);
     }
-    return report.ok ? 0 : 1;
+    return 0;
   },
 };
 
@@ -1262,6 +1262,11 @@ const gitSetup: Command = {
     git(context, ["config", "merge.msecrets.driver", `${command} git merge-driver %O %A %B %P`]);
 
     context.success("Configured .gitattributes (commit it) and this clone's git config");
+    if (/[\\/]_npx[\\/]/.test(command)) {
+      context.warn(
+        "msecrets runs from the temporary npx cache, which npm may delete. Install it (`npm install --save-dev @msecrets/ui`) and run `msecrets git setup` again.",
+      );
+    }
     context.note(
       context.err.dim(
         "Every clone runs `msecrets git setup` once; git config is not shared through the repository.",
