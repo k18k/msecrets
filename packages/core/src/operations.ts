@@ -9,6 +9,7 @@ import {
   type SealedValue,
   type SecretEntry,
   type SecretsDocument,
+  normalizeDescription,
   own,
   requireName,
   secretEnvironments,
@@ -115,8 +116,9 @@ export function addRecipient(
   }
 
   const entry: RecipientEntry = { key: publicKey.token };
-  if (description?.trim()) {
-    entry.description = description.trim();
+  const text = normalizeDescription(description);
+  if (text) {
+    entry.description = text;
   }
   document.recipients[name] = entry;
   return entry;
@@ -128,8 +130,9 @@ export function describeRecipient(
   description: string | undefined,
 ): void {
   const entry = requireRecipient(document, name);
-  if (description?.trim()) {
-    entry.description = description.trim();
+  const text = normalizeDescription(description);
+  if (text) {
+    entry.description = text;
   } else {
     delete entry.description;
   }
@@ -485,8 +488,9 @@ export function describeSecret(
   description: string | undefined,
 ): void {
   const secret = requireSecret(document, name);
-  if (description?.trim()) {
-    secret.description = description.trim();
+  const text = normalizeDescription(description);
+  if (text) {
+    secret.description = text;
   } else {
     delete secret.description;
   }

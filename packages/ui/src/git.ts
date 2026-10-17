@@ -130,7 +130,8 @@ function merge3(
   }
   if (!isAtomic(path) && isObject(ours) && isObject(theirs)) {
     const baseObject = isObject(base) ? base : {};
-    const result: { [key: string]: Json } = {};
+    // No prototype: keys come from untrusted files and may include "__proto__".
+    const result = Object.create(null) as { [key: string]: Json };
     for (const key of new Set([...Object.keys(ours), ...Object.keys(theirs)])) {
       const merged = merge3(baseObject[key], ours[key], theirs[key], [...path, key], conflicts);
       if (merged !== undefined) {

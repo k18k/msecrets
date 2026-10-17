@@ -47,6 +47,7 @@ Packages import core through relative paths; tsdown bundles it. Published packag
 - Writers must be recipients of the environment with a signing key; machine keys from `--generate` are read-only.
 - Never put secrets on command lines; pass them through stdin. Scrub identity variables before running user code.
 - Parsers of untrusted input (age headers, keys, files) are strict and reject non-canonical encodings.
+- Never print untrusted text with control characters (terminal escape injection): validate or sanitize it.
 
 ### 4. Standards over invention
 

@@ -67,6 +67,11 @@ export function createColors(enabled: boolean): Colors {
 
 const ANSI = /\u001b\[[0-9;?]*[A-Za-z]|\u001b\][^\u0007]*\u0007/g;
 
+/** Makes untrusted text safe to print: control characters (escape sequences) become U+FFFD. */
+export function sanitize(text: string): string {
+  return text.replace(/[\u0000-\u001f\u007f-\u009f]/g, "\ufffd");
+}
+
 export function stripAnsi(text: string): string {
   return text.replace(ANSI, "");
 }

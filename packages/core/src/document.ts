@@ -77,7 +77,33 @@ export function nameProblem(kind: NameKind, name: string): string | null {
     return `"__proto__" is reserved`;
   }
   const rule = NAME_RULES[kind];
-  return rule.pattern.test(name) ? null : `Invalid ${kind} name "${name}": use ${rule.description}`;
+  return rule.pattern.test(name)
+    ? null
+    : `Invalid ${kind} name ${JSON.stringify(name)}: use ${rule.description}`;
+}
+
+/** Control characters in displayed text could rewrite what a terminal shows (escape sequence injection). */
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f-\u009f]/;
+const CONTROL_CHARACTERS_GLOBAL = new RegExp(CONTROL_CHARACTERS.source, "g");
+
+export function descriptionProblem(text: string): string | null {
+  if (!text || text !== text.trim() || text.length > 1000) {
+    return "Descriptions must be non-empty, trimmed, and at most 1000 characters";
+  }
+  return CONTROL_CHARACTERS.test(text) ? "Descriptions must not contain control characters" : null;
+}
+
+/** Trims a description for storage; empty means none. Throws on invalid text. */
+export function normalizeDescription(description: string | undefined): string | undefined {
+  const text = description?.trim();
+  if (!text) {
+    return undefined;
+  }
+  const problem = descriptionProblem(text);
+  if (problem) {
+    throw new MsecretsError("USAGE", problem);
+  }
+  return text;
 }
 
 export function requireName(kind: NameKind, name: string): string {
@@ -152,8 +178,9 @@ class Validator {
       return undefined;
     }
     const text = this.string(value, path);
-    if (text !== null && (text !== text.trim() || !text || text.length > 1000)) {
-      this.issue(path, "Descriptions must be non-empty, trimmed, and at most 1000 characters");
+    const problem = text === null ? null : descriptionProblem(text);
+    if (problem) {
+      this.issue(path, problem);
     }
     return text ?? undefined;
   }
@@ -381,7 +408,11 @@ export function validateDocument(input: unknown): {
 }
 
 export function formatIssues(issues: readonly ValidationIssue[]): string {
-  return issues.map((issue) => `  ${issue.path}: ${issue.message}`).join("\n");
+  return issues
+    .map((issue) =>
+      `  ${issue.path}: ${issue.message}`.replace(CONTROL_CHARACTERS_GLOBAL, "\ufffd"),
+    )
+    .join("\n");
 }
 
 export function parseDocument(input: unknown, source = "secrets file"): SecretsDocument {

@@ -32,7 +32,7 @@ import {
 } from "../../../core/src/index.ts";
 import type { Context } from "../context.ts";
 import { CELL_DESCRIPTIONS, type Symbols, cellStyle } from "../symbols.ts";
-import { type Colors, padEnd, visibleLength } from "../terminal.ts";
+import { type Colors, padEnd, sanitize, visibleLength } from "../terminal.ts";
 import { type Key, decodeKeys } from "./keys.ts";
 
 type View = "secrets" | "environments" | "recipients" | "checks";
@@ -574,7 +574,7 @@ export class TuiApp {
       this.modals.push({
         kind: "message",
         title: `${secret} in ${environment}`,
-        lines: [...value.split("\n"), "", "c copy · any other key closes"],
+        lines: [...value.split("\n").map(sanitize), "", "c copy · any other key closes"],
         copy: value,
       });
     } else if (char === "r") {

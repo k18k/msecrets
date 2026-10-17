@@ -38,6 +38,12 @@ permalink: /security/
   </article>
 </div>
 
+## Safe to review
+
+The file is plain text, and so is everything msecrets prints from it. Descriptions cannot contain control
+characters, error messages escape names, and revealed values are sanitized in the terminal UI, so a pull request
+cannot hide lines from reviewers or write to their clipboard with terminal escape sequences.
+
 ## What you must still do
 
 - **Review changes to recipients and access.** Anyone who can push can add their own key to an environment's

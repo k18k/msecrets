@@ -139,6 +139,17 @@ describe("merge driver", () => {
     assert.equal(result.text, text(ours));
   });
 
+  test("hostile keys such as __proto__ cannot pollute the merge", () => {
+    const { document: base } = sampleDocument();
+    const theirs = JSON.parse(text(base)) as Record<string, unknown>;
+    theirs["secrets"] = JSON.parse(
+      `{"__proto__": {"polluted": true}, ${JSON.stringify(theirs["secrets"]).slice(1)}`,
+    );
+    const result = mergeDocuments(text(base), text(base), JSON.stringify(theirs));
+    assert.ok(result.conflicts.some((conflict) => conflict.includes("__proto__")));
+    assert.equal(({} as Record<string, unknown>)["polluted"], undefined);
+  });
+
   test("two unrelated files (different ids) conflict", () => {
     const left = sampleDocument().document;
     const right = sampleDocument().document;

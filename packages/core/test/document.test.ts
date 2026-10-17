@@ -5,6 +5,8 @@ import { describe, test } from "node:test";
 
 import {
   FORMAT_VERSION,
+  describeRecipient,
+  describeSecret,
   SCHEMA_URL,
   isMsecretsError,
   nameProblem,
@@ -226,6 +228,40 @@ describe("JSON schema", () => {
         .slice(0, 2)
         .join(" "),
       key,
+    );
+  });
+});
+
+describe("terminal escape injection", () => {
+  const escape = "\u001b]52;c;cHduZWQ=\u0007\u001b[2K";
+
+  test("descriptions with control characters are rejected", () => {
+    const { document } = sampleDocument();
+    const input = JSON.parse(serializeDocument(document)) as {
+      secrets: Record<string, { description?: string }>;
+    };
+    const secret = input.secrets["DATABASE_URL"];
+    assert.ok(secret);
+    secret.description = `Primary${escape}`;
+    assert.match(issuesOf(input).join("\n"), /must not contain control characters/);
+    assert.throws(
+      () => describeSecret(document, "DATABASE_URL", `x${escape}`),
+      /must not contain control characters/,
+    );
+    assert.throws(
+      () => describeRecipient(document, "alice", "tab\there"),
+      /must not contain control characters/,
+    );
+  });
+
+  test("validation errors never echo raw control characters", () => {
+    const { document } = sampleDocument();
+    const input = JSON.parse(serializeDocument(document)) as { secrets: Record<string, unknown> };
+    input.secrets[`EVIL${escape}`] = { values: {} };
+    assert.throws(
+      () => parseDocument(input),
+      (error: unknown) =>
+        error instanceof Error && !/[\u0000-\u001f]/.test(error.message.replace(/\n/g, "")),
     );
   });
 });

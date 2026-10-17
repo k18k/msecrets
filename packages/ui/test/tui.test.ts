@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { describe, test } from "node:test";
 
-import { generateIdentity, parseDocumentText, revealValue } from "../../core/src/index.ts";
+import {
+  generateIdentity,
+  parseDocumentText,
+  revealValue,
+  setValue,
+} from "../../core/src/index.ts";
 import { main } from "../src/cli.ts";
 import { Context } from "../src/context.ts";
 import type { InputStream, Io, OutputStream } from "../src/terminal.ts";
@@ -114,6 +119,24 @@ describe("TUI", () => {
       `\u001b]52;c;${Buffer.from("postgres://dev").toString("base64")}\u0007`,
     ]);
     assert.equal(app.modals.length, 0);
+  });
+
+  test("revealed values cannot inject terminal escape sequences", async (t) => {
+    const { app, context } = await setup(t);
+    context.update((document) =>
+      setValue(document, app.identities, {
+        secret: "EVIL",
+        environment: "development",
+        value: "a\u001b[2Jb\u0007c",
+      }),
+    );
+    app.reload();
+    app.row = app.secrets().indexOf("EVIL");
+    app.column = 0;
+    await app.feed("v");
+    const output = screen(app);
+    assert.ok(output.includes("a\ufffd[2Jb\ufffdc"));
+    assert.ok(!output.includes("\u001b[2J"));
   });
 
   test("rename, describe, unset, delete", async (t) => {
