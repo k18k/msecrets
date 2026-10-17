@@ -64,6 +64,7 @@ const GROUPS: [string, string[]][] = [
   ],
   ["Run your app", ["run", "export", "import"]],
   ["CI and git", ["check", "git setup", "git textconv", "git merge-driver"]],
+  ["AI agents", ["skill"]],
 ];
 
 function optionRows(options: Record<string, OptionSpec>): string[][] {

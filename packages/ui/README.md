@@ -66,6 +66,7 @@ enter edit · v reveal · a add · r rename · d delete · s sync · ? help
 | Export / import                | `msecrets export --format dotenv\|json\|shell\|powershell`, `msecrets import .env` |
 | CI                             | `msecrets check`                                                                   |
 | Your keys                      | `msecrets whoami`, `msecrets identity new \| show \| use \| export`                |
+| AI coding agents               | `msecrets skill` (`--global` for all your projects)                                |
 
 The environment is `--env`, else `MSECRETS_ENV`, else `development` when it exists, else the only environment.
 Run `msecrets <command> --help` for details.
@@ -108,6 +109,19 @@ The machine key is printed once, never stored. At runtime, provide it as `MSECRE
 `/run/secrets/msecrets_identity` (Docker, Swarm, Compose) or as the systemd credential `msecrets_identity`.
 `msecrets run` and the SDK remove it from the environment before your app starts. Machine keys created this way can
 read but never write.
+
+## AI coding agents
+
+```bash
+msecrets skill    # writes .claude/skills/msecrets and .agents/skills/msecrets; commit them
+```
+
+The skill teaches Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and other agents to read secrets with the
+typed SDK and to manage them without ever seeing a value. In Claude Code it is also a plugin:
+
+```
+/plugin install msecrets --marketplace k18k/msecrets
+```
 
 ## Documentation
 

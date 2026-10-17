@@ -40,6 +40,17 @@ through `injectEnv(file)`. See the [runtime docs](https://k18k.github.io/msecret
 
 **Documentation: https://k18k.github.io/msecrets/**
 
+### AI coding agents
+
+```bash
+npx msecrets skill    # teaches Claude Code, Codex, Cursor, Copilot, Gemini CLI, … to use msecrets
+```
+
+Agents learn to use the typed SDK and to manage secrets without ever seeing a value: they ask you to run
+`msecrets set` instead. Commit the generated `.claude/skills` and `.agents/skills`. Also available through
+`npx skills add k18k/msecrets` and in Claude Code with `/plugin install msecrets --marketplace k18k/msecrets`.
+See [AI agents](https://k18k.github.io/msecrets/ai/).
+
 ## Why
 
 - **Complete:** every environment has every secret, or `msecrets check` fails CI and apps refuse to start.

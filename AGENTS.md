@@ -22,6 +22,9 @@ This repository implements **msecrets v4**: encrypted secrets that live in the r
   - `src/sources.ts`, `src/keychain.ts`: where private keys come from
 - `packages/ts-sdk` (`@msecrets/ts-sdk`): `createClient(file)` (typed secrets from an imported file), `injectEnv`
 - `packages/ui` (`@msecrets/ui`, bin `msecrets`): CLI commands, terminal UI, `run`, git integration
+  - `skills/msecrets/SKILL.md`: the agent skill, published with the package, installed by `msecrets skill`, and served
+    as a Claude Code plugin (`.claude-plugin/`). Keep it in sync with the CLI and SDK (a test checks commands,
+    imports, error codes, and the plugin version).
 
 Packages import core through relative paths; tsdown bundles it. Published packages must have **no dependencies**.
 

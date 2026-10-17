@@ -56,6 +56,19 @@ test("version, help, and errors", (t) => {
   assert.match(run(["ls"]).stderr, /No msecrets\.json found/);
 });
 
+test("skill: the published SKILL.md, printed and installed", (t) => {
+  const { root, ok } = sandbox(t);
+  const skill = readFileSync(join(here, "..", "skills", "msecrets", "SKILL.md"), "utf8");
+  assert.equal(ok(["skill", "--print"]).stdout, skill);
+  ok(["skill"], { env: { GIT_CEILING_DIRECTORIES: root } });
+  for (const directory of [".claude", ".agents"]) {
+    assert.equal(
+      readFileSync(join(root, directory, "skills", "msecrets", "SKILL.md"), "utf8"),
+      skill,
+    );
+  }
+});
+
 test("init, set, get, check, run, export", (t) => {
   const { root, run, ok } = sandbox(t);
   ok(["init", "--store", "file", "--name", "alice"]);

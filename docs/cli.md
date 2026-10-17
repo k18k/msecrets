@@ -116,6 +116,12 @@ After `git setup`, `git diff` and pull request reviews show changes like:
 Two branches that change different secrets, environments, or access lists merge cleanly. Changing the same value on
 both sides is a conflict: git keeps your side and lists the conflicting values.
 
+### AI agents
+
+| Command                            |                                                                                                                              |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `msecrets skill [--global] [--print]` | Install the msecrets [agent skill](../ai/) into `.claude/skills` and `.agents/skills` of this repository (or your home directory). |
+
 ## Global options
 
 | Option                  |                                                                                                   |

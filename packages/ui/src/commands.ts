@@ -1,6 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync, realpathSync, statSync, writeFileSync } from "node:fs";
-import { join, relative, resolve } from "node:path";
+import {
+  appendFileSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join, relative, resolve } from "node:path";
 
 import {
   type CellState,
@@ -1232,6 +1240,7 @@ const importCommand: Command = {
 function git(context: Context, args: string[]): string {
   return execFileSync("git", args, {
     cwd: context.io.cwd,
+    env: context.io.env,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
@@ -1309,6 +1318,70 @@ const gitMergeDriver: Command = {
   },
 };
 
+// AI agents
+
+/** Published next to dist/ and src/, so the same relative URL works from source and from the bundle. */
+const SKILL_FILE = new URL("../skills/msecrets/SKILL.md", import.meta.url);
+/** Claude Code reads .claude/skills; Codex, Cursor, GitHub Copilot, Gemini CLI, and others read .agents/skills. */
+const SKILL_DIRECTORIES = [".claude/skills", ".agents/skills"];
+
+function projectRoot(context: Context): string {
+  try {
+    return git(context, ["rev-parse", "--show-toplevel"]);
+  } catch {
+    // Not a git repository (or no git): the working directory is the project.
+    return context.io.cwd;
+  }
+}
+
+const skill: Command = {
+  name: "skill",
+  args: "",
+  summary:
+    "Install the msecrets skill for AI coding agents (Claude Code, Codex, Cursor, Copilot, …)",
+  options: {
+    global: {
+      type: "boolean",
+      description: "Install for your user account instead of this project",
+    },
+    print: { type: "boolean", description: "Print the skill instead of installing it" },
+  },
+  async run(context, _args, flags) {
+    const content = readFileSync(SKILL_FILE, "utf8");
+    if (flagBoolean(flags, "print")) {
+      context.io.stdout.write(content);
+      return;
+    }
+
+    const global = flagBoolean(flags, "global");
+    const root = global
+      ? (context.io.env["HOME"] ?? context.io.env["USERPROFILE"] ?? homedir())
+      : projectRoot(context);
+    for (const directory of SKILL_DIRECTORIES) {
+      const path = join(root, directory, "msecrets", "SKILL.md");
+      const current = statSync(path, { throwIfNoEntry: false })
+        ? readFileSync(path, "utf8")
+        : undefined;
+      if (current === content) {
+        context.note(`Up to date: ${displayPath(context, path)}`);
+        continue;
+      }
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, content);
+      context.success(
+        `${current === undefined ? "Installed" : "Updated"} ${displayPath(context, path)}`,
+      );
+    }
+    context.note(
+      context.err.dim(
+        global
+          ? "Agents now know msecrets in every project. Run `msecrets skill --global` again after upgrading."
+          : "Commit these files so every teammate's agent knows msecrets. Run `msecrets skill` again after upgrading.",
+      ),
+    );
+  },
+};
+
 export const COMMANDS: readonly Command[] = [
   init,
   joinCommand,
@@ -1344,4 +1417,5 @@ export const COMMANDS: readonly Command[] = [
   gitSetup,
   gitTextconv,
   gitMergeDriver,
+  skill,
 ];

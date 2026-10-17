@@ -1,0 +1,11 @@
+{
+  "name": "msecrets",
+  "version": "4.0.0",
+  "description": "Teaches Claude to read msecrets secrets with @msecrets/ts-sdk and to manage them without ever seeing a value",
+  "author": {
+    "name": "Krystian Mikołajczyk"
+  },
+  "homepage": "https://k18k.github.io/msecrets/ai/",
+  "repository": "https://github.com/k18k/msecrets",
+  "license": "MIT"
+}

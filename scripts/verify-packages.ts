@@ -27,7 +27,8 @@ const FORBIDDEN_FIELDS = [
   "bundleDependencies",
   "bundledDependencies",
 ];
-const ALLOWED_FILES = /^(dist\/.+|schema\/v\d+\.json|package\.json|README\.md|LICENSE)$/;
+const ALLOWED_FILES =
+  /^(dist\/.+|schema\/v\d+\.json|skills\/[a-z-]+\/SKILL\.md|package\.json|README\.md|LICENSE)$/;
 
 const work = mkdtempSync(join(tmpdir(), "msecrets-verify-"));
 const npm = (args: string[], cwd: string) =>
@@ -60,8 +61,8 @@ try {
     }
     assert.ok(
       Array.isArray(manifest["files"]) &&
-        manifest["files"].every((entry) => entry === "dist" || entry === "schema"),
-      `${manifest.name} must publish only dist (and schema)`,
+        manifest["files"].every((entry) => ["dist", "schema", "skills"].includes(entry)),
+      `${manifest.name} must publish only dist (and schema or skills)`,
     );
 
     const [packed] = JSON.parse(npm(["pack", "--json", "--pack-destination", work], directory)) as [
@@ -161,7 +162,14 @@ try {
     ),
     "https://sentry.example/1",
   );
-  console.log("✓ @msecrets/ui: the msecrets binary runs when installed");
+  npm(["exec", "--offline", "--", "msecrets", "skill"], app);
+  assert.equal(
+    readFileSync(join(app, ".claude", "skills", "msecrets", "SKILL.md"), "utf8"),
+    readFileSync(join(root, "packages", "ui", "skills", "msecrets", "SKILL.md"), "utf8"),
+  );
+  console.log(
+    "✓ @msecrets/ui: the msecrets binary runs when installed and installs the agent skill",
+  );
 } finally {
   rmSync(work, { recursive: true, force: true });
 }
