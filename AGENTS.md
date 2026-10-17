@@ -2,7 +2,7 @@
 
 This repository implements **msecrets v4**: encrypted secrets that live in the repository.
 
-- One committed JSON file (`.env.ms.json`, format version 4)
+- One committed JSON file (`msecrets.json`, format version 4)
 - Every value is an independent age file, encrypted to the recipients of its environment
 - Every value is signed (Ed25519) by a recipient of its environment
 - No server, no KMS, no dependencies
@@ -36,7 +36,7 @@ Packages import core through relative paths; tsdown bundles it. Published packag
 
 ### 2. The file is the compatibility contract
 
-- `.env.ms.json` v4 must stay readable by every v4 release. Breaking it requires explicit instruction and a new `version`.
+- `msecrets.json` v4 must stay readable by every v4 release. Breaking it requires explicit instruction and a new `version`.
 - The file holds no runtime-only or machine-specific data. Keys and identity sources never come from the file.
 - Keep `packages/ts-sdk/schema/v4.json` in sync with `document.ts` (a test enforces the name and key patterns).
 

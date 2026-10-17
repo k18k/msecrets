@@ -7,13 +7,13 @@
 
 Encrypted secrets that live in your repository.
 
-Commit one file, `.env.ms.json`. Every value is encrypted with [age](https://age-encryption.org) to the people and
+Commit one file, `msecrets.json`. Every value is encrypted with [age](https://age-encryption.org) to the people and
 machines of its environment and signed by whoever wrote it. There is no server, no account, nothing to provision,
 and no dependencies.
 
 ```bash
 npm install --save-dev @msecrets/ui
-npx msecrets init                      # .env.ms.json + your key (OS keychain when available)
+npx msecrets init                      # msecrets.json + your key (OS keychain when available)
 npx msecrets set DATABASE_URL          # prompts for the value
 npx msecrets                           # terminal UI: every secret in every environment
 npx msecrets run -- npm start          # secrets as environment variables, for any language

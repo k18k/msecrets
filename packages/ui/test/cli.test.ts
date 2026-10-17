@@ -19,7 +19,7 @@ describe("team workflow", () => {
     ok(init);
     assert.match(
       init.stderr,
-      /Created \.env\.ms\.json \(development, production\); you are recipient "alice"/,
+      /Created msecrets\.json \(development, production\); you are recipient "alice"/,
     );
     assert.match(readFileSync(join(alice.config, "config.json"), "utf8"), /"file:.*identity\.txt"/);
     assert.equal((await alice.run(["init", "--store", "file"])).code, 1);
@@ -134,7 +134,7 @@ describe("team workflow", () => {
 
     ok(await alice.run(["recipient", "rm", "bob", "--yes"]));
     assert.equal(
-      parseDocumentText(readFileSync(join(ws.project, ".env.ms.json"), "utf8")).recipients["bob"],
+      parseDocumentText(readFileSync(join(ws.project, "msecrets.json"), "utf8")).recipients["bob"],
       undefined,
     );
   });
@@ -181,7 +181,7 @@ describe("team workflow", () => {
     ok(await alice.run(["recipient", "mv", "alice", "alice.smith"]));
     ok(await alice.run(["check"]));
 
-    const document = parseDocumentText(readFileSync(join(ws.project, ".env.ms.json"), "utf8"));
+    const document = parseDocumentText(readFileSync(join(ws.project, "msecrets.json"), "utf8"));
     assert.deepEqual(Object.keys(document.environments), ["development"]);
     assert.deepEqual(Object.keys(document.secrets), []);
     assert.deepEqual(Object.keys(document.recipients), ["alice.smith"]);
@@ -406,7 +406,7 @@ describe("usage", () => {
     assert.equal((await user.run(["get"])).code, 2);
     const missing = await user.run(["ls"]);
     assert.equal(missing.code, 1);
-    assert.match(missing.stderr, /No \.env\.ms\.json found/);
+    assert.match(missing.stderr, /No msecrets\.json found/);
     assert.equal((await user.run(["tui"])).code, 2);
   });
 

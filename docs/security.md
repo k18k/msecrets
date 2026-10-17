@@ -48,7 +48,7 @@ cannot hide lines from reviewers or write to their clipboard with terminal escap
 
 - **Review changes to recipients and access.** Anyone who can push can add their own key to an environment's
   recipients in the file. That change is plain text in the pull request (`git diff` shows it after
-  `msecrets git setup`); require review for `.env.ms.json`, for example with CODEOWNERS.
+  `msecrets git setup`); require review for `msecrets.json`, for example with CODEOWNERS.
 - **Rotate after revoking.** Encryption cannot take back what someone already copied, and old ciphertext stays in
   git history. `msecrets revoke` lists every value the person could read.
 - **Protect machine keys** like any credential: one per deployment target, stored in the platform's secret store.

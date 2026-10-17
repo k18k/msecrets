@@ -95,7 +95,7 @@ try {
   );
 
   const fixtures = join(root, "packages", "ts-sdk", "test", "fixtures");
-  copyFileSync(join(fixtures, "app.ms.json"), join(app, ".env.ms.json"));
+  copyFileSync(join(fixtures, "app.ms.json"), join(app, "msecrets.json"));
   const identity = readFileSync(join(fixtures, "production.identity.txt"), "utf8");
   const env = { MSECRETS_ENV: "production", MSECRETS_IDENTITY: identity };
 

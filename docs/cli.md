@@ -24,7 +24,7 @@ Node.js 20 or newer on Linux, macOS, or Windows. The package has no dependencies
 Run `msecrets` (or `msecrets tui`) in a terminal.
 
 ```
- msecrets  .env.ms.json  you: alice
+ msecrets  msecrets.json  you: alice
  1 Secrets   2 Environments   3 Recipients   4 Checks
 ──────────────────────────────────────────────────────────────────
   SECRET        development  staging  production  DESCRIPTION
@@ -57,7 +57,7 @@ In the Checks view, `enter` jumps to the problem.
 
 | Command                                                                          |                                                                                                       |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `msecrets init [--env a,b] [--name NAME] [--store WHERE] [--pq]` | Create `.env.ms.json` with you as the first recipient. Default environments: development, production. `--store`: `keychain` (default), `file`, or `print`. |
+| `msecrets init [--env a,b] [--name NAME] [--store WHERE] [--pq]` | Create `msecrets.json` with you as the first recipient. Default environments: development, production. `--store`: `keychain` (default), `file`, or `print`. |
 | `msecrets join [--env NAME]`                                                     | Add yourself to an existing file. Commit it; a member then runs `msecrets sync`.                      |
 | `msecrets whoami`                                                                | Your keys, where they come from, and what they can access.                                            |
 | `msecrets identity new`, `show`, `use SOURCE`, `export` | Create, show, configure, or export your keys. See [Keys](../identities/). |
@@ -102,7 +102,7 @@ Secret names are environment variable names (`[A-Za-z_][A-Za-z0-9_]*`), so every
 | Command                   |                                                                                                 |
 | ------------------------- | ----------------------------------------------------------------------------------------------- |
 | `msecrets check [--json]` | Exit 1 unless every value is present, current, and signed. Needs no keys.                       |
-| `msecrets git setup`      | Adds `.env.ms.json diff=msecrets merge=msecrets` to `.gitattributes` and configures this clone. |
+| `msecrets git setup`      | Adds `msecrets.json diff=msecrets merge=msecrets` to `.gitattributes` and configures this clone. |
 
 After `git setup`, `git diff` and pull request reviews show changes like:
 
@@ -120,7 +120,7 @@ both sides is a conflict: git keeps your side and lists the conflicting values.
 
 | Option                  |                                                                                                   |
 | ----------------------- | ------------------------------------------------------------------------------------------------- |
-| `-f, --file PATH`       | Secrets file. Default: `MSECRETS_FILE`, else `.env.ms.json` in the working directory or a parent. |
+| `-f, --file PATH`       | Secrets file. Default: `MSECRETS_FILE`, else `msecrets.json` in the working directory or a parent. |
 | `-e, --env NAME`        | Environment. Default: `MSECRETS_ENV`, else `development` when it exists, else the only one.       |
 | `-i, --identity SOURCE` | Use this key or source instead of the defaults (repeatable).                                      |
 | `--as RECIPIENT`        | Sign as this recipient when you hold several keys.                                                |

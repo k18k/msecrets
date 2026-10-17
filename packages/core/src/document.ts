@@ -1,5 +1,5 @@
 /**
- * The `.env.ms.json` v4 file format: the compatibility contract of msecrets.
+ * The `msecrets.json` v4 file format: the compatibility contract of msecrets.
  *
  * Structural validation lives here. Cryptographic state (signatures,
  * recipient drift, completeness) is evaluated by `status.ts`.
@@ -9,7 +9,7 @@ import { MsecretsError } from "./errors.ts";
 import { parsePublicKey } from "./keys.ts";
 
 export const FORMAT_VERSION = 4;
-export const DEFAULT_FILENAME = ".env.ms.json";
+export const DEFAULT_FILENAME = "msecrets.json";
 export const SCHEMA_URL = "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json";
 
 export type RecipientEntry = {

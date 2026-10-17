@@ -185,7 +185,7 @@ const GENERATE: OptionSpec = {
 const init: Command = {
   name: "init",
   args: "",
-  summary: "Create .env.ms.json with you as its first recipient",
+  summary: "Create msecrets.json with you as its first recipient",
   options: {
     name: {
       type: "string",
@@ -236,7 +236,7 @@ const init: Command = {
         `  msecrets set DATABASE_URL            ${context.err.dim("# add a secret (prompts for the value)")}`,
         `  msecrets run -- npm start            ${context.err.dim("# run anything with the secrets as env vars")}`,
         `  msecrets git setup                   ${context.err.dim("# readable diffs and conflict-free merges")}`,
-        `  git add ${displayPath(context, path)}                 ${context.err.dim("# the file is safe to commit")}`,
+        `${`  git add ${displayPath(context, path)}`.padEnd(39)}${context.err.dim("# the file is safe to commit")}`,
       ].join("\n"),
     );
   },

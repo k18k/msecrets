@@ -43,7 +43,7 @@ describe("createClient", () => {
 
   test("defaults: file discovery from cwd, MSECRETS_ENV, then development", (t) => {
     const directory = tempDir(t);
-    copyFileSync(join(FIXTURES, "app.ms.json"), join(directory, ".env.ms.json"));
+    copyFileSync(join(FIXTURES, "app.ms.json"), join(directory, "msecrets.json"));
 
     const client = createClient({ cwd: directory, identities: [developer] });
     assert.equal(client.environment, "development");

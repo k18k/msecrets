@@ -50,13 +50,13 @@ async function setup(
 
 const screen = (app: TuiApp, width = 110, height = 30) => app.render(width, height).join("\n");
 const file = (ws: Workspace) =>
-  parseDocumentText(readFileSync(join(ws.project, ".env.ms.json"), "utf8"));
+  parseDocumentText(readFileSync(join(ws.project, "msecrets.json"), "utf8"));
 
 describe("TUI", () => {
   test("renders the secret × environment matrix with health and hints", async (t) => {
     const { app } = await setup(t);
     const output = screen(app);
-    assert.match(output, / msecrets .*\.env\.ms\.json {2}you: alice/);
+    assert.match(output, / msecrets .*msecrets\.json {2}you: alice/);
     assert.match(output, /1 Secrets .* 2 Environments .* 3 Recipients .* 4 Checks/);
     assert.match(output, /SECRET\s+development\s+production\s+DESCRIPTION/);
     assert.match(output, /› API_KEY\s+\[●\]\s+●/, "the selected cell is bracketed");
@@ -103,10 +103,10 @@ describe("TUI", () => {
 
   test("escape cancels without writing", async (t) => {
     const { app, ws } = await setup(t);
-    const before = readFileSync(join(ws.project, ".env.ms.json"), "utf8");
+    const before = readFileSync(join(ws.project, "msecrets.json"), "utf8");
     await app.feed(`${ENTER}changed${ESC}`);
     assert.equal(app.modals.length, 0);
-    assert.equal(readFileSync(join(ws.project, ".env.ms.json"), "utf8"), before);
+    assert.equal(readFileSync(join(ws.project, "msecrets.json"), "utf8"), before);
   });
 
   test("reveal shows the value and copies it through OSC 52", async (t) => {
@@ -157,11 +157,11 @@ describe("TUI", () => {
 
   test("invalid input shows an error and changes nothing", async (t) => {
     const { app, ws } = await setup(t);
-    const before = readFileSync(join(ws.project, ".env.ms.json"), "utf8");
+    const before = readFileSync(join(ws.project, "msecrets.json"), "utf8");
     await app.feed(`abad name${ENTER}`);
     assert.equal(app.status?.tone, "error");
     assert.match(app.status?.text ?? "", /Invalid secret name/);
-    assert.equal(readFileSync(join(ws.project, ".env.ms.json"), "utf8"), before);
+    assert.equal(readFileSync(join(ws.project, "msecrets.json"), "utf8"), before);
   });
 
   test("filter, help, navigation, quit", async (t) => {

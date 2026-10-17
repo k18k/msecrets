@@ -53,7 +53,7 @@ test("version, help, and errors", (t) => {
   assert.equal(ok(["--version"]).stdout.trim(), version);
   assert.match(ok([]).stdout, /msecrets <command>/);
   assert.equal(run(["nope"]).code, 2);
-  assert.match(run(["ls"]).stderr, /No \.env\.ms\.json found/);
+  assert.match(run(["ls"]).stderr, /No msecrets\.json found/);
 });
 
 test("init, set, get, check, run, export", (t) => {
@@ -80,7 +80,7 @@ test("init, set, get, check, run, export", (t) => {
     TOKEN: "t0k3n",
   });
 
-  const document = JSON.parse(readFileSync(join(root, ".env.ms.json"), "utf8"));
+  const document = JSON.parse(readFileSync(join(root, "msecrets.json"), "utf8"));
   assert.equal(document.version, 4);
 });
 
@@ -126,7 +126,7 @@ test(
     ok(["git", "setup"]);
     assert.match(
       readFileSync(join(root, ".gitattributes"), "utf8"),
-      /^\.env\.ms\.json diff=msecrets merge=msecrets$/m,
+      /^msecrets\.json diff=msecrets merge=msecrets$/m,
     );
     git(["add", "."]);
     assert.equal(git(["commit", "-qm", "init"]).code, 0);
@@ -136,7 +136,7 @@ test(
     assert.match(diff, /^-    development: signed by alice [0-9a-f]{12}$/m);
     assert.match(diff, /^\+    development: signed by alice [0-9a-f]{12}$/m);
     assert.ok(!diff.includes("YWdl"), "no ciphertext in the diff");
-    git(["checkout", "--", ".env.ms.json"]);
+    git(["checkout", "--", "msecrets.json"]);
 
     git(["checkout", "-qb", "feature"]);
     ok(["set", "B", "feature"]);

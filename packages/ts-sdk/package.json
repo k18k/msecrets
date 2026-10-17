@@ -1,7 +1,7 @@
 {
   "name": "@msecrets/ts-sdk",
   "version": "4.0.0",
-  "description": "Runtime SDK for msecrets: verify and decrypt the secrets committed in .env.ms.json. Zero dependencies.",
+  "description": "Runtime SDK for msecrets: verify and decrypt the secrets committed in msecrets.json. Zero dependencies.",
   "keywords": [
     "age",
     "dotenv",

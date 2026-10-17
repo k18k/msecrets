@@ -21,7 +21,7 @@ const GLOBAL_OPTIONS: Record<string, OptionSpec> = {
     type: "string",
     short: "f",
     description:
-      "Secrets file (default: MSECRETS_FILE, else .env.ms.json here or in a parent directory)",
+      "Secrets file (default: MSECRETS_FILE, else msecrets.json here or in a parent directory)",
     placeholder: "PATH",
   },
   env: {

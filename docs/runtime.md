@@ -32,7 +32,7 @@ hero_shell: |-
 
 ```ts
 import { createClient, load } from "@msecrets/ts-sdk";
-import file from "./.env.ms.json" with { type: "json" };
+import file from "./msecrets.json" with { type: "json" };
 
 const all = load({ env: "production" });
 

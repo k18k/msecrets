@@ -1,9 +1,9 @@
 ---
 layout: default
 title: File format
-description: The msecrets v4 .env.ms.json format.
+description: The msecrets v4 msecrets.json format.
 eyebrow: Compatibility contract
-lead: .env.ms.json is plain JSON with a published schema. It holds recipients, environments, and signed age ciphertext, and nothing else.
+lead: msecrets.json is plain JSON with a published schema. It holds recipients, environments, and signed age ciphertext, and nothing else.
 permalink: /file-format/
 hero_shell: |-
   {
@@ -62,7 +62,7 @@ The [JSON schema](https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json
 ## Decrypting without msecrets
 
 ```bash
-jq -r '.secrets.DATABASE_URL.values.production.data' .env.ms.json | base64 -d | age -d -i key.txt
+jq -r '.secrets.DATABASE_URL.values.production.data' msecrets.json | base64 -d | age -d -i key.txt
 ```
 
 ## Rules
@@ -75,16 +75,16 @@ jq -r '.secrets.DATABASE_URL.values.production.data' .env.ms.json | base64 -d | 
 
 ## Coming from msecrets 3
 
-Version 4 replaces OpenPGP with age and the v2/v3 file layout with this one; there is no automatic conversion,
-because the new format adds signatures that only the current value holders can create. To migrate:
+Version 4 replaces OpenPGP with age and the v2/v3 `.env.ms.json` with `msecrets.json`; there is no automatic
+conversion, because the new format adds signatures that only the current value holders can create. Both files can
+exist side by side while you migrate:
 
 ```bash
 # 1. With msecrets 3 (its UI or SDK), collect each environment's values into a dotenv file outside the repository.
 # 2. With msecrets 4:
-mv .env.ms.json .env.ms.v3.json
 npx msecrets init --env development,production
 npx msecrets import ~/production.env --env production
 npx msecrets import ~/development.env --env development
 npx msecrets check
-# 3. Delete the dotenv files and the v3 file.
+# 3. Delete the dotenv files and .env.ms.json.
 ```

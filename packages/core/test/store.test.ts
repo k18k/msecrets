@@ -47,6 +47,22 @@ describe("store", () => {
     );
   });
 
+  test("points msecrets 3 projects to the migration guide", (t) => {
+    const root = tempDir(t);
+    const nested = join(root, "src");
+    mkdirSync(nested);
+    writeFileSync(join(root, ".env.ms.json"), '{"version":"3.0.0"}');
+    assert.throws(
+      () => resolveDocumentFile({ cwd: nested, env: {} }),
+      (error: unknown) =>
+        isMsecretsError(error, "NOT_FOUND") &&
+        error.message.includes(join(root, ".env.ms.json")) &&
+        /Coming from msecrets 3/.test(error.message),
+    );
+    writeFileSync(join(root, DEFAULT_FILENAME), "{}");
+    assert.equal(resolveDocumentFile({ cwd: nested, env: {} }), join(root, DEFAULT_FILENAME));
+  });
+
   test("creates files exclusively and reads them back", (t) => {
     const path = join(tempDir(t), DEFAULT_FILENAME);
     const { document } = sampleDocument();

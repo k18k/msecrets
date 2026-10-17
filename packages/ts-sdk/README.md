@@ -1,7 +1,7 @@
 # @msecrets/ts-sdk
 
 Runtime SDK for [msecrets](https://k18k.github.io/msecrets/): verify and decrypt the secrets committed in
-`.env.ms.json`. **Zero dependencies**, synchronous, ESM and CommonJS, Node.js 20 or newer on every platform.
+`msecrets.json`. **Zero dependencies**, synchronous, ESM and CommonJS, Node.js 20 or newer on every platform.
 
 ```bash
 npm install @msecrets/ts-sdk
@@ -35,7 +35,7 @@ const secrets = load(); // { DATABASE_URL: "…", STRIPE_KEY: "…" }, frozen
 
 ```ts
 import { createClient } from "@msecrets/ts-sdk";
-import file from "./.env.ms.json" with { type: "json" };
+import file from "./msecrets.json" with { type: "json" };
 
 const secrets = createClient({ file, env: "production" });
 secrets.get("DATABASE_URL"); // string
@@ -76,7 +76,7 @@ The key is only loaded when the first value is decrypted.
 | `injectEnv(options?)`                                                                 | Writes the environment into `process.env` (`override: true` to replace set variables). |
 | `fromEnv`, `fromFile`, `fromCommand`, `fromKeychain`, `fromString`, `parseSourceSpec` | Identity sources.                                                                      |
 
-Options: `file` (parsed file or path; default: `MSECRETS_FILE`, else `.env.ms.json` in the working directory or a
+Options: `file` (parsed file or path; default: `MSECRETS_FILE`, else `msecrets.json` in the working directory or a
 parent), `env`, `identities`, `cwd`.
 
 Errors are `MsecretsError` instances with a `code`: `NOT_FOUND`, `ACCESS_DENIED`, `SIGNATURE`, `INVALID_FILE`,

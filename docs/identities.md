@@ -13,7 +13,7 @@ hero_shell: |-
 
 ## Key types
 
-| Private key (identity)                               | Public key (in `.env.ms.json`) | Can                  |
+| Private key (identity)                               | Public key (in `msecrets.json`) | Can                  |
 | ---------------------------------------------------- | ------------------------------ | -------------------- |
 | `AGE-SECRET-KEY-1…`                                  | `msecrets1…`                   | read and write       |
 | `AGE-SECRET-KEY-PQ-1…` (post-quantum, `--pq`)        | `msecrets1…`                   | read and write       |

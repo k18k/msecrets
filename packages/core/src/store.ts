@@ -19,6 +19,9 @@ import {
 } from "./document.ts";
 import { MsecretsError } from "./errors.ts";
 
+/** The msecrets 2 and 3 file name, recognized only to point to the migration guide. */
+const LEGACY_FILENAME = ".env.ms.json";
+
 /** Finds the secrets file in `start` or the closest parent directory. */
 export function findDocumentFile(
   start: string = process.cwd(),
@@ -42,7 +45,7 @@ export type ResolveFileOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-/** Resolves the secrets file: explicit path, then MSECRETS_FILE, then upward search for .env.ms.json. */
+/** Resolves the secrets file: explicit path, then MSECRETS_FILE, then upward search for msecrets.json. */
 export function resolveDocumentFile(options: ResolveFileOptions = {}): string {
   const cwd = options.cwd ?? process.cwd();
   const explicit = options.file ?? (options.env ?? process.env)["MSECRETS_FILE"];
@@ -52,9 +55,12 @@ export function resolveDocumentFile(options: ResolveFileOptions = {}): string {
 
   const found = findDocumentFile(cwd);
   if (!found) {
+    const legacy = findDocumentFile(cwd, LEGACY_FILENAME);
     throw new MsecretsError(
       "NOT_FOUND",
-      `No ${DEFAULT_FILENAME} found in ${cwd} or any parent directory. Create one with \`msecrets init\`, or point to it with --file or MSECRETS_FILE`,
+      legacy
+        ? `No ${DEFAULT_FILENAME} found, but there is ${legacy}, the msecrets 3 file. To migrate, see "Coming from msecrets 3" at https://k18k.github.io/msecrets/file-format/`
+        : `No ${DEFAULT_FILENAME} found in ${cwd} or any parent directory. Create one with \`msecrets init\`, or point to it with --file or MSECRETS_FILE`,
     );
   }
   return found;

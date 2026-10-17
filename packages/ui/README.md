@@ -2,7 +2,7 @@
 
 The msecrets command line and terminal UI: encrypted secrets that live in your repository.
 
-You commit one file, `.env.ms.json`. Every value in it is encrypted with [age](https://age-encryption.org) to the
+You commit one file, `msecrets.json`. Every value in it is encrypted with [age](https://age-encryption.org) to the
 people and machines that may read its environment, and signed by whoever wrote it. There is no server, no account,
 and nothing to provision. **Zero dependencies.**
 
@@ -16,19 +16,19 @@ Requires Node.js 20 or newer on Linux, macOS, or Windows. Post-quantum keys need
 ## Start in a minute
 
 ```bash
-msecrets init                          # creates .env.ms.json and your key (OS keychain when available)
+msecrets init                          # creates msecrets.json and your key (OS keychain when available)
 msecrets set DATABASE_URL              # prompts for the value; nothing lands in your shell history
 msecrets set STRIPE_KEY --all          # same value for every environment
 msecrets run -- npm start              # your app gets the secrets as environment variables
 msecrets git setup                     # readable `git diff` and conflict-free merges
-git add .env.ms.json .gitattributes && git commit -m "Add secrets"
+git add msecrets.json .gitattributes && git commit -m "Add secrets"
 ```
 
 `msecrets` without arguments opens the terminal UI: a matrix of every secret in every environment, where you can add,
 edit, reveal, rename, and delete secrets, and manage environments and access.
 
 ```
- msecrets  .env.ms.json  you: alice
+ msecrets  msecrets.json  you: alice
  1 Secrets   2 Environments   3 Recipients   4 Checks
 ──────────────────────────────────────────────────────────────────
   SECRET        development  staging  production  DESCRIPTION

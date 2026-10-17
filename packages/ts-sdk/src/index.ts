@@ -32,13 +32,13 @@ export {
   parseSourceSpec,
 } from "../../core/src/index.ts";
 
-/** Anything shaped like a parsed `.env.ms.json`, e.g. `import file from "./.env.ms.json" with { type: "json" }`. */
+/** Anything shaped like a parsed `msecrets.json`, e.g. `import file from "./msecrets.json" with { type: "json" }`. */
 export type SecretsFileLike = { secrets: object };
 
 export type ClientOptions = {
   /**
    * The parsed secrets file (a JSON import gives typed secret names) or a path to it.
-   * Default: MSECRETS_FILE, else `.env.ms.json` in the working directory or its parents.
+   * Default: MSECRETS_FILE, else `msecrets.json` in the working directory or its parents.
    */
   file?: SecretsFileLike | string;
   /** Environment. Default: MSECRETS_ENV, else "development" if it exists, else the only environment. */

@@ -33,7 +33,7 @@ hero_shell: |-
 - **Core is the source of truth.** The CLI, the terminal UI, and the SDK only call core operations.
 - **Operations are transactions.** Each one runs on a copy of the document; the result is validated before an atomic
   write, and nothing is written when anything fails.
-- **The file is the contract.** Everything durable is in `.env.ms.json`. Keys and identity sources come from the
+- **The file is the contract.** Everything durable is in `msecrets.json`. Keys and identity sources come from the
   caller, the environment, or the user's own config, never from the repository.
 - **Standards over invention.** Encryption is age, so values interoperate with `age`, `rage`, and other tools.
 - **No dependencies.** Cryptography is `node:crypto`; the terminal UI is plain ANSI. Packages are bundled with tsdown.

@@ -19,7 +19,7 @@ hero_shell: |-
 <div class="intro-strip">
   <div class="stat">
     <strong>1 file</strong>
-    <span><code>.env.ms.json</code> is committed with the code it configures.</span>
+    <span><code>msecrets.json</code> is committed with the code it configures.</span>
   </div>
   <div class="stat">
     <strong>age + Ed25519</strong>
@@ -62,12 +62,12 @@ hero_shell: |-
 
 ```bash
 npm install --save-dev @msecrets/ui
-npx msecrets init                 # creates .env.ms.json and your key (OS keychain when available)
+npx msecrets init                 # creates msecrets.json and your key (OS keychain when available)
 npx msecrets set DATABASE_URL     # prompts for the value
 npx msecrets                      # the terminal UI: every secret in every environment
 npx msecrets run -- npm start     # your app reads the secrets as environment variables
 npx msecrets git setup            # readable diffs and structural merges
-git add .env.ms.json .gitattributes
+git add msecrets.json .gitattributes
 ```
 
 In application code, either keep using `process.env` with the preload, or use the SDK:
