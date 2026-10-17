@@ -3,43 +3,34 @@
   "private": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/k18k/msecrets"
+    "url": "git+https://github.com/k18k/msecrets.git"
   },
   "workspaces": [
-    "docs",
     "packages/*"
   ],
   "type": "module",
   "scripts": {
-    "format": "oxfmt . && oxlint --fix",
-    "build": "turbo build",
-    "test": "turbo test",
-    "coverage": "c8 npm run test --workspaces --if-present"
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "oxlint --deny-warnings",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "test": "node --test --test-timeout=120000 \"packages/*/test/**/*.test.ts\"",
+    "test:dist": "node --test --test-timeout=120000 \"packages/*/test-dist/**/*.test.{mjs,cjs}\"",
+    "coverage": "node --test --test-timeout=120000 --experimental-test-coverage --test-coverage-include=\"packages/*/src/**\" --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=lcov.info \"packages/*/test/**/*.test.ts\"",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run build && npm test && npm run test:dist && npm run verify:packages",
+    "verify:packages": "node scripts/verify-packages.ts",
+    "publish:new": "node scripts/publish.ts"
   },
   "devDependencies": {
-    "@types/node": "25.6.0",
-    "c8": "^11.0.0",
-    "oxfmt": "0.47.0",
-    "oxlint": "1.62.0",
-    "tsdown": "0.21.10",
-    "turbo": "^2.9.7",
-    "typescript": "6.0.2"
+    "@types/node": "26.6.5",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
+    "tsdown": "0.23.1",
+    "typescript": "7.0.2"
   },
-  "c8": {
-    "all": true,
-    "exclude": [
-      "**/*.test.ts",
-      "**/dist/**",
-      "**/node_modules/**",
-      "**/routeTree.gen.ts",
-      "packages/ui/**/*"
-    ],
-    "include": [
-      "packages/**/*.ts"
-    ],
-    "reporter": [
-      "json-summary"
-    ]
+  "engines": {
+    "node": ">=22.22.2"
   },
-  "packageManager": "npm@11.8.0"
+  "packageManager": "npm@12.2.0"
 }

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json",
+  "title": "msecrets secrets file (v4)",
+  "description": "The committed .env.ms.json file: recipients, environments, and age-encrypted, signed secret values. Edit it with the msecrets CLI; values cannot be written by hand.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "id", "recipients", "environments", "secrets"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": { "const": 4, "description": "Format version." },
+    "id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{32}$",
+      "description": "Random file id, bound into every value signature."
+    },
+    "recipients": {
+      "type": "object",
+      "description": "People and machines that can be granted access, by name.",
+      "propertyNames": { "pattern": "^[a-z0-9](?:[a-z0-9._@+-]{0,62}[a-z0-9])?$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key"],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Public key: msecrets1… (read and write), age1… or age1pq1… (read-only), or ssh-ed25519 AAAA… (read and write).",
+            "pattern": "^(msecrets1[02-9ac-hj-np-z]+|age1[02-9ac-hj-np-z]+|ssh-ed25519 [A-Za-z0-9+/]+={0,2})$"
+          },
+          "description": { "type": "string", "minLength": 1, "maxLength": 1000 }
+        }
+      }
+    },
+    "environments": {
+      "type": "object",
+      "description": "Environments in display order, each with the recipients that can read it.",
+      "propertyNames": { "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,62}[a-z0-9])?$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["recipients"],
+        "properties": {
+          "recipients": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+        }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Secrets by name; every name is a valid environment variable name.",
+      "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$" },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["values"],
+        "properties": {
+          "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "environments": {
+            "type": "array",
+            "description": "Environments this secret applies to. Omitted: every environment.",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "values": {
+            "type": "object",
+            "description": "Sealed values by environment.",
+            "additionalProperties": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["to", "by", "sig", "data"],
+              "properties": {
+                "to": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{32}$",
+                  "description": "Digest of the recipient keys the value is encrypted to."
+                },
+                "by": { "type": "string", "description": "Recipient that signed the value." },
+                "sig": { "type": "string", "description": "Ed25519 signature (base64)." },
+                "data": {
+                  "type": "string",
+                  "description": "age-encrypted value (base64 of a binary age file)."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

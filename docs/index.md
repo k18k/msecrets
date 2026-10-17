@@ -2,50 +2,57 @@
 layout: default
 title: Docs
 heading: msecrets
-description: Documentation for msecrets, a repository-native encrypted secrets system.
-eyebrow: Repository-native encrypted configuration
-lead: Commit one portable secrets file, encrypt each value for explicit OpenPGP recipients, and decrypt at runtime through SDK adapters.
+description: Encrypted secrets that live in your repository. One committed file, age encryption, signed values, zero dependencies.
+eyebrow: Encrypted secrets that live in your repository
+lead: Commit one file. Every value is encrypted to the people and machines of its environment and signed by whoever wrote it. No server, no account, nothing to provision.
 primary_link: "#quick-start"
 primary_label: Quick start
-secondary_link: "/runtime/"
-secondary_label: Runtime SDK
+secondary_link: "/cli/"
+secondary_label: CLI & terminal UI
 hero_shell: |-
-  npm install -g @msecrets/ui
-  @msecrets/ui .env.ms.json
+  npm install --save-dev @msecrets/ui
+  npx msecrets init
+  npx msecrets set DATABASE_URL
+  npx msecrets run -- npm start
 ---
 
 <div class="intro-strip">
   <div class="stat">
     <strong>1 file</strong>
-    <span>Commit <code>.env.ms.json</code> with the code it configures.</span>
+    <span><code>.env.ms.json</code> is committed with the code it configures.</span>
   </div>
   <div class="stat">
-    <strong>OpenPGP</strong>
-    <span>Portable keys and messages, not a local keyring contract.</span>
+    <strong>age + Ed25519</strong>
+    <span>Standard encryption, post-quantum optional, every value signed.</span>
   </div>
   <div class="stat">
-    <strong>Runtime SDK</strong>
-    <span>Decrypt through stateless adapters in production code.</span>
+    <strong>0 dependencies</strong>
+    <span>Pure TypeScript on <code>node:crypto</code>. Linux, macOS, Windows, Node.js 20+.</span>
   </div>
 </div>
 
-## Why teams use it
+## Never worry about secrets again
 
 <div class="cards four">
   <article class="card accent">
-    <span class="kicker">Portable</span>
-    <h3>No mandatory secrets server</h3>
-    <p>Secrets move with the repository as encrypted OpenPGP messages, so development and deployment do not start with provisioning a central service.</p>
+    <span class="kicker">Complete</span>
+    <h3>Every environment has every secret</h3>
+    <p><code>msecrets check</code> fails CI when a value is missing, and apps refuse to start with half an environment.</p>
   </article>
   <article class="card blue">
-    <span class="kicker">Explicit</span>
-    <h3>Recipients are visible</h3>
-    <p>Access is encoded directly in the file. There is no hidden policy layer and no ambient local machine state.</p>
+    <span class="kicker">In sync</span>
+    <h3>Access changes cannot drift</h3>
+    <p>Values encrypted for an outdated set of people show up as <em>needs sync</em> until a member runs <code>msecrets sync</code>.</p>
   </article>
   <article class="card gold">
-    <span class="kicker">Repository-first</span>
-    <h3>Works with code review</h3>
-    <p>Environment changes are file changes. Teams can review when a secret is added, renamed, shared, or revoked.</p>
+    <span class="kicker">Trustworthy</span>
+    <h3>Tampering is detected</h3>
+    <p>Each value is signed by a member of its environment and bound to its slot. Swapped or injected ciphertext is rejected.</p>
+  </article>
+  <article class="card red">
+    <span class="kicker">Reviewable</span>
+    <h3>Readable diffs, clean merges</h3>
+    <p><code>git diff</code> shows which values changed and who signed them; independent changes merge without conflicts.</p>
   </article>
 </div>
 
@@ -53,49 +60,47 @@ hero_shell: |-
 
 {: #quick-start }
 
-Install the local authoring UI and open a repository secrets file.
-
 ```bash
-npm install -g @msecrets/ui
-@msecrets/ui .env.ms.json
+npm install --save-dev @msecrets/ui
+npx msecrets init                 # creates .env.ms.json and your key (OS keychain when available)
+npx msecrets set DATABASE_URL     # prompts for the value
+npx msecrets                      # the terminal UI: every secret in every environment
+npx msecrets run -- npm start     # your app reads the secrets as environment variables
+npx msecrets git setup            # readable diffs and structural merges
+git add .env.ms.json .gitattributes
 ```
 
-The UI can initialize the file, import keys, manage environments, and set encrypted values. The result is an encrypted `.env.ms.json` file suitable for committing to Git.
+In application code, either keep using `process.env` with the preload, or use the SDK:
+
+```bash
+node --import @msecrets/ts-sdk/register server.js
+```
+
+```ts
+import { load } from "@msecrets/ts-sdk";
+const { DATABASE_URL } = load();
+```
 
 ## How the pieces fit
 
-<div class="cards two">
+<div class="cards three">
   <article class="card accent">
-    <h3>Authoring</h3>
-    <p>Use the <a href="{{ '/ui/' | relative_url }}">local UI</a> to manage environments, recipient public keys, and encrypted values. Core workflows keep file changes deterministic.</p>
+    <h3>Author</h3>
+    <p>The <a href="{{ '/cli/' | relative_url }}">CLI and terminal UI</a> create the file, set values, and manage environments and access.</p>
   </article>
   <article class="card blue">
-    <h3>Runtime</h3>
-    <p>Use the <a href="{{ '/runtime/' | relative_url }}">SDK and adapters</a> inside applications. Adapters provide private key access and return plaintext only.</p>
+    <h3>Run</h3>
+    <p>The <a href="{{ '/runtime/' | relative_url }}">runtime SDK</a> or <code>msecrets run</code> decrypt the selected environment for your app.</p>
+  </article>
+  <article class="card gold">
+    <h3>Keys</h3>
+    <p><a href="{{ '/identities/' | relative_url }}">Private keys</a> stay in your keychain or password manager, and in your CI or container secret store.</p>
   </article>
 </div>
 
 <div class="callout">
   <div>
-    <h2>Built for developers who want fewer moving parts.</h2>
-    <p>msecrets is deliberately not a KMS, policy engine, or hosted secrets platform. It is a compact OpenPGP-based workflow for encrypted configuration in Git.</p>
+    <h2>Upgrading from msecrets 3?</h2>
+    <p>Version 4 uses a new file format and age instead of OpenPGP. Export your values with v3, then run <code>msecrets init</code> and <code>msecrets import</code>. See the <a href="{{ '/file-format/' | relative_url }}">file format</a> page.</p>
   </div>
-  <a class="button secondary" href="https://github.com/k18k/msecrets">Star or sponsor</a>
-</div>
-
-## Read next
-
-<div class="cards">
-  <article class="card">
-    <h3><a href="{{ '/ui/' | relative_url }}">UI</a></h3>
-    <p>Use the local browser dashboard to inspect and edit a workspace file.</p>
-  </article>
-  <article class="card">
-    <h3><a href="{{ '/file-format/' | relative_url }}">File format</a></h3>
-    <p>Understand the portable <code>.env.ms.json</code> contract.</p>
-  </article>
-  <article class="card">
-    <h3><a href="{{ '/architecture/' | relative_url }}">Architecture</a></h3>
-    <p>See how core, the UI, the SDK, and adapters fit together.</p>
-  </article>
 </div>

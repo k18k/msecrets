@@ -1,93 +1,93 @@
 # @msecrets/ts-sdk
 
-Runtime TypeScript client for reading and decrypting values from a committed
-`.env.ms.json` file.
-
-The SDK is the runtime entry point for msecrets applications. It validates the
-secrets file, selects values for the requested mode, and asks one or more
-stateless adapters to decrypt each value.
-
-## Install
+Runtime SDK for [msecrets](https://k18k.github.io/msecrets/): verify and decrypt the secrets committed in
+`.env.ms.json`. **Zero dependencies**, synchronous, ESM and CommonJS, Node.js 20 or newer on every platform.
 
 ```bash
 npm install @msecrets/ts-sdk
 ```
 
-The SDK accepts stateless adapters. Official adapters ship with the SDK for raw
-OpenPGP private keys, Docker secrets, or local GPG-backed decryption.
+Create and edit the secrets file with the [`msecrets` CLI](https://www.npmjs.com/package/@msecrets/ui).
 
-## Quick Start
+## Use it
+
+### No code changes: preload
+
+```bash
+node --import @msecrets/ts-sdk/register server.js     # ESM
+node --require @msecrets/ts-sdk/register server.js    # CommonJS
+```
+
+Every secret of the selected environment becomes an environment variable before your app starts. Variables that
+are already set win. If anything is missing, tampered with, or unreadable, the process stops with a clear error.
+
+### Load everything
 
 ```ts
-import { rawPKs } from "@msecrets/ts-sdk/adapters/raw-pks";
-import { MSecrets } from "@msecrets/ts-sdk";
-import secrets from "./.env.ms.json" with { type: "json" };
+import { load } from "@msecrets/ts-sdk";
 
-const privateKey = process.env["MSECRETS_PRIVATE_KEY"];
-if (!privateKey) {
-  throw new Error("MSECRETS_PRIVATE_KEY is required");
-}
-
-const adapter = await rawPKs({
-  keys: [privateKey],
-});
-
-const client = new MSecrets({
-  mode: "production",
-  adapters: [adapter],
-  secrets,
-});
-
-const password = await client.get("DB_PASSWORD");
+const secrets = load(); // { DATABASE_URL: "…", STRIPE_KEY: "…" }, frozen
 ```
 
-CommonJS applications can load the same committed file with `require`:
+`load()` returns the complete environment or throws: a running app never sees half of its secrets.
 
-```js
-const { rawPKs } = require("@msecrets/ts-sdk/adapters/raw-pks");
-const { MSecrets } = require("@msecrets/ts-sdk");
-const secrets = require("./.env.ms.json");
+### Typed access
+
+```ts
+import { createClient } from "@msecrets/ts-sdk";
+import file from "./.env.ms.json" with { type: "json" };
+
+const secrets = createClient({ file, env: "production" });
+secrets.get("DATABASE_URL"); // string
+secrets.get("DATABSE_URL"); // type error: names come from your secrets file
 ```
+
+## Where the private key comes from
+
+By default the SDK looks, in this order, at:
+
+1. `MSECRETS_IDENTITY`: the key itself (read once, then removed from `process.env`)
+2. `MSECRETS_IDENTITY_FILE`: a path to a key file (`MSECRETS_PASSPHRASE` for passphrase-protected files)
+3. `MSECRETS_IDENTITY_SOURCE`: a source such as `op://vault/item/field`, `bw:item`, `pass:name`, `keychain:account`
+4. `/run/secrets/msecrets_identity` (Docker, Swarm, Compose) and `$CREDENTIALS_DIRECTORY/msecrets_identity` (systemd)
+5. Only when none of those is set: the developer's own msecrets config (OS keychain, password manager, key file)
+
+Pass `identities` to choose explicitly. Strings are keys or source specs:
+
+```ts
+createClient({ identities: ["env:PROD_KEY", "file:/etc/app/msecrets.key"] });
+```
+
+The key is only loaded when the first value is decrypted.
+
+## Environment
+
+`env` option, else `MSECRETS_ENV`, else `development` when it exists, else the only environment of the file.
 
 ## API
 
-### `new MSecrets(config)`
+|                                                                                       |                                                                                        |
+| ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `createClient(options?)`                                                              | A client for one environment.                                                          |
+| `client.get(name)`                                                                    | Verifies and decrypts one value.                                                       |
+| `client.has(name)` / `client.keys()`                                                  | What has a value in this environment (no key needed).                                  |
+| `client.all()`                                                                        | Every value of the environment; throws if the environment is incomplete.               |
+| `load(options?)`                                                                      | `createClient(options).all()`.                                                         |
+| `injectEnv(options?)`                                                                 | Writes the environment into `process.env` (`override: true` to replace set variables). |
+| `fromEnv`, `fromFile`, `fromCommand`, `fromKeychain`, `fromString`, `parseSourceSpec` | Identity sources.                                                                      |
 
-Creates a client for one secrets file and one runtime mode.
+Options: `file` (parsed file or path; default: `MSECRETS_FILE`, else `.env.ms.json` in the working directory or a
+parent), `env`, `identities`, `cwd`.
 
-```ts
-type MSecretsConfig = {
-  secrets: SecretsFile;
-  mode: string;
-  adapters: MSecretsAdapter[];
-};
-```
+Errors are `MsecretsError` instances with a `code`: `NOT_FOUND`, `ACCESS_DENIED`, `SIGNATURE`, `INVALID_FILE`,
+`IDENTITY_SOURCE`, `UNSUPPORTED`, …
 
-- `secrets` is the parsed `.env.ms.json` content.
-- `mode` must exist in `secrets.environments`.
-- `adapters` must contain at least one runtime adapter.
+## Security
 
-The constructor validates the secrets file before any decryption attempt.
+Values are encrypted with age (X25519, or ML-KEM-768 + X25519 for post-quantum keys) and every value is signed with
+Ed25519 by a member of its environment. Before decrypting, the SDK verifies that the signature binds the ciphertext
+to this file, secret, environment, and recipient set, and that the signer may write there.
 
-### `client.listKeys()`
+## License
 
-Returns secret names that have a value for the configured mode.
-
-### `client.has(key)`
-
-Returns whether a secret has a value for the configured mode.
-
-### `client.get(key)`
-
-Decrypts and returns one secret value. Results are cached in memory for the
-life of the client instance. If an adapter cannot decrypt the value, the SDK
-tries the next adapter and reports all adapter errors if none succeed.
-
-## Publish Readiness
-
-```bash
-npm --workspace @msecrets/ts-sdk run build
-npm --workspace @msecrets/ts-sdk run test
-npm --workspace @msecrets/ts-sdk run test:e2e
-npm pack --dry-run --workspace @msecrets/ts-sdk
-```
+MIT

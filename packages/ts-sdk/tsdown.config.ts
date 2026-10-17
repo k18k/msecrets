@@ -1,15 +1,11 @@
-import { defineConfig } from "tsdown/config";
+import { type UserConfig, defineConfig } from "tsdown";
 
-export default defineConfig({
-  entry: {
-    index: "index.ts",
-    "adapters/docker-secrets": "adapters/docker-secrets.ts",
-    "adapters/gpg": "adapters/gpg.ts",
-    "adapters/raw-pks": "adapters/raw-pks.ts",
-  },
-  exports: {},
+const config: UserConfig = defineConfig({
+  entry: { index: "src/index.ts", register: "src/register.ts" },
   format: ["esm", "cjs"],
+  platform: "node",
   dts: true,
-  sourcemap: true,
-  deps: { onlyBundle: ["openpgp"] },
+  clean: true,
 });
+
+export default config;

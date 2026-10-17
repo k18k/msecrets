@@ -1,41 +1,16 @@
-# dependencies
 node_modules
-
-# output
-out
 dist
 *.tgz
-
-# code coverage
 coverage
-*.lcov
-
-# logs
-logs
-_.log
-report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
-
-# dotenv environment variable files
-.env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
-
-# caches
-.cache
+lcov.info
+.turbo
 *.tsbuildinfo
-.bundle
+.cache
 .docs-site
 .jekyll-cache
 .sass-cache
-
-# IntelliJ based IDEs
+.bundle
 .idea
-
-# Finder (MacOS) folder config
 .DS_Store
-
-msecrets.json
-
-.turbo
+.env
+.env.*.local
