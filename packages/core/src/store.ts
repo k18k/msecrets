@@ -153,24 +153,86 @@ export function createDocumentFile(path: string, document: SecretsDocument): voi
   }
 }
 
+const LOCK_TIMEOUT = 30_000;
+
+/** Whether a lock file belongs to a process that no longer exists (a crashed writer). */
+function staleLock(lock: string): boolean {
+  let text: string;
+  try {
+    text = readFileSync(lock, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false; // Released meanwhile: try again.
+    }
+    throw error;
+  }
+  const owner = Number(text);
+  if (!Number.isInteger(owner) || owner <= 0) {
+    // Empty while its owner writes it, or garbage: stale only once it is old.
+    const modified = statSync(lock, { throwIfNoEntry: false })?.mtimeMs ?? Date.now();
+    return Date.now() - modified > 5_000;
+  }
+  try {
+    process.kill(owner, 0);
+    return false;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ESRCH";
+  }
+}
+
+/** Runs `action` while holding `<path>.lock`, so writers on this machine take turns. */
+function withLock<T>(path: string, action: () => T): T {
+  const lock = `${path}.lock`;
+  const deadline = Date.now() + LOCK_TIMEOUT;
+  for (;;) {
+    try {
+      writeNewFile(lock, String(process.pid));
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
+        throw error;
+      }
+      if (staleLock(lock)) {
+        rmSync(lock, { force: true });
+      } else if (Date.now() > deadline) {
+        throw new MsecretsError(
+          "CONFLICT",
+          `${path} is locked by another msecrets process. If none is running, delete ${lock}`,
+        );
+      } else {
+        sleep(20);
+      }
+    }
+  }
+  try {
+    return action();
+  } finally {
+    rmSync(lock, { force: true });
+  }
+}
+
 /**
  * Read-modify-write of the secrets file. The mutation runs on a fresh copy; if
- * it throws, nothing is written. Concurrent modification is detected.
+ * it throws, nothing is written. msecrets processes take turns through a lock
+ * file; changes by anything else (an editor, git) during the operation are
+ * detected.
  */
 export function updateDocumentFile<T>(path: string, mutate: (document: SecretsDocument) => T): T {
-  const before = readText(path);
-  const document = parseDocumentText(before, path);
-  const result = mutate(document);
-  const text = serializeChecked(path, document);
+  return withLock(path, () => {
+    const before = readText(path);
+    const document = parseDocumentText(before, path);
+    const result = mutate(document);
+    const text = serializeChecked(path, document);
 
-  if (text !== before) {
-    if (readText(path) !== before) {
-      throw new MsecretsError(
-        "CONFLICT",
-        `${path} changed on disk during the operation; run it again`,
-      );
+    if (text !== before) {
+      if (readText(path) !== before) {
+        throw new MsecretsError(
+          "CONFLICT",
+          `${path} changed on disk during the operation; run it again`,
+        );
+      }
+      atomicReplace(path, text);
     }
-    atomicReplace(path, text);
-  }
-  return result;
+    return result;
+  });
 }

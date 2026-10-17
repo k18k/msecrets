@@ -56,6 +56,8 @@ describe("dotenv", () => {
       HASH: "a #b",
       EMPTY: "",
       UNICODE: "zażółć 🔐",
+      CARRIAGE_RETURN: "a\rb",
+      TAB: "a\tb",
     };
     assert.deepEqual(Object.fromEntries(parseDotenv(formatDotenv(values))), values);
   });

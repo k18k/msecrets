@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 
@@ -293,6 +293,32 @@ describe("runtime commands", () => {
     assert.equal((await alice.run(["run", "--", "msecrets-no-such-command"])).code, 2);
   });
 
+  test("run hides identities read from any variable, also through config", async (t) => {
+    const ws = workspace(t);
+    const alice = ws.person("alice");
+    ok(await alice.run(["init", "--store", "file", "--name", "alice", "--env", "development"]));
+    ok(await alice.run(["set", "GREETING", "hello"]));
+    const identity = readFileSync(join(alice.config, "identity.txt"), "utf8");
+    const output = join(ws.root, "child.json");
+    const script = `require("fs").writeFileSync(${JSON.stringify(output)}, JSON.stringify([process.env.GREETING, process.env.APP_PRIVATE_KEY ?? null, process.env.MSECRETS_PASSPHRASE ?? null]))`;
+    const env = { APP_PRIVATE_KEY: identity, MSECRETS_PASSPHRASE: "unused" };
+
+    ok(
+      await alice.run(
+        ["run", "--identity", "env:APP_PRIVATE_KEY", "--", process.execPath, "-e", script],
+        { env },
+      ),
+    );
+    assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), ["hello", null, null]);
+
+    writeFileSync(
+      join(alice.config, "config.json"),
+      JSON.stringify({ identities: ["env:APP_PRIVATE_KEY"] }),
+    );
+    ok(await alice.run(["run", "--", process.execPath, "-e", script], { env }));
+    assert.deepEqual(JSON.parse(readFileSync(output, "utf8")), ["hello", null, null]);
+  });
+
   test("run refuses an incomplete environment", async (t) => {
     const ws = workspace(t);
     const alice = ws.person("alice");
@@ -374,6 +400,22 @@ describe("identities", () => {
     assert.equal((await carol.run(["identity", "use", "env:NOT_SET"])).code, 1);
     const viaFlag = await ws.person("dave").run(["identity", "show", "--identity", secret]);
     assert.equal(viaFlag.stdout.trim(), shown.stdout.trim());
+  });
+
+  test("identity use stores file paths absolute, so they work from any directory", async (t) => {
+    const ws = workspace(t);
+    const erin = ws.person("erin");
+    const printed = await erin.run(["identity", "new", "--store", "print"]);
+    writeFileSync(join(ws.project, "erin.key"), `${identityFrom(printed.stdout)}\n`);
+    ok(await erin.run(["identity", "use", "file:erin.key"]));
+    assert.deepEqual(JSON.parse(readFileSync(join(erin.config, "config.json"), "utf8")), {
+      identities: [`file:${join(ws.project, "erin.key")}`],
+    });
+    const nested = join(ws.project, "src");
+    mkdirSync(nested);
+    const shown = await erin.run(["identity", "show"], { cwd: nested });
+    ok(shown);
+    assert.match(shown.stdout, /^msecrets1/);
   });
 
   test("no identity: helpful errors", async (t) => {

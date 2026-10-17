@@ -3,6 +3,9 @@ import {
   type Identity,
   type IdentitySource,
   type LoadedIdentity,
+  IDENTITY_FILE_VARIABLE,
+  IDENTITY_SOURCE_VARIABLE,
+  IDENTITY_VARIABLE,
   MsecretsError,
   PASSPHRASE_VARIABLE,
   type SecretsDocument,
@@ -42,6 +45,7 @@ export class Context {
   readonly symbols: Symbols;
   #path: string | undefined;
   #identities: LoadedIdentity[] | undefined;
+  #childEnv: NodeJS.ProcessEnv | undefined;
 
   constructor(io: Io, options: GlobalOptions) {
     this.io = io;
@@ -98,8 +102,9 @@ export class Context {
     return chooseEnvironment(document, explicit, this.io.env);
   }
 
-  sources(passphrase: (label: string) => string): IdentitySource[] {
-    const options = { env: this.io.env, cwd: this.io.cwd, passphrase, scrub: false };
+  /** Identity sources reading from `env`, a copy of the environment that they scrub. */
+  sources(passphrase: (label: string) => string, env: NodeJS.ProcessEnv): IdentitySource[] {
+    const options = { env, cwd: this.io.cwd, passphrase, scrub: true };
     if (!this.options.identity?.length) {
       return [autoSource(options)];
     }
@@ -120,6 +125,8 @@ export class Context {
     const fromEnv = this.io.env[PASSPHRASE_VARIABLE];
     for (;;) {
       try {
+        // Every attempt starts from the full environment; sources delete the variables they read.
+        const env = { ...this.io.env };
         this.#identities = loadIdentities(
           this.sources((label) => {
             const known = passphrases.get(label) ?? fromEnv;
@@ -127,8 +134,9 @@ export class Context {
               throw new PassphraseNeeded(label);
             }
             return known;
-          }),
+          }, env),
         );
+        this.#childEnv = env;
         return this.#identities;
       } catch (error) {
         if (!(error instanceof PassphraseNeeded) || passphrases.has(error.label)) {
@@ -146,6 +154,24 @@ export class Context {
         );
       }
     }
+  }
+
+  /**
+   * The environment for commands msecrets runs: without any variable an identity
+   * was read from (`env:NAME` sources included) and without msecrets key settings.
+   */
+  async childEnv(): Promise<NodeJS.ProcessEnv> {
+    await this.loadedIdentities();
+    const env = { ...this.#childEnv };
+    for (const variable of [
+      IDENTITY_VARIABLE,
+      IDENTITY_FILE_VARIABLE,
+      IDENTITY_SOURCE_VARIABLE,
+      PASSPHRASE_VARIABLE,
+    ]) {
+      delete env[variable];
+    }
+    return env;
   }
 
   async identities(): Promise<Identity[]> {

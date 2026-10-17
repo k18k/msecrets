@@ -26,7 +26,10 @@ export type RunResult = { code: number; stdout: string; stderr: string };
 
 export type Person = {
   config: string;
-  run(argv: string[], options?: { input?: string; env?: NodeJS.ProcessEnv }): Promise<RunResult>;
+  run(
+    argv: string[],
+    options?: { input?: string; env?: NodeJS.ProcessEnv; cwd?: string },
+  ): Promise<RunResult>;
 };
 
 export type Workspace = { root: string; project: string; person(name: string): Person };
@@ -60,7 +63,7 @@ export function workspace(t: TestContext): Workspace {
               TERM: "xterm-256color",
               ...options.env,
             },
-            cwd: project,
+            cwd: options.cwd ?? project,
           };
           const code = await main(argv, io);
           return { code, stdout: stdout.text, stderr: stderr.text };

@@ -8,6 +8,7 @@ import {
   inspect,
   parseDocumentText,
   revealValue,
+  scopeSecret,
   serializeDocument,
   setValue,
 } from "../../core/src/index.ts";
@@ -96,6 +97,18 @@ describe("merge driver", () => {
     assert.ok(
       inspect(merged).cells.some((cell) => cell.secret === "NEW" && cell.state === "stale"),
     );
+  });
+
+  test('a scope removed on one side ("every environment") conflicts with a scope changed on the other', () => {
+    const { document: base } = sampleDocument();
+    const ours = fork(base);
+    const theirs = fork(base);
+    scopeSecret(ours, "DEBUG", undefined);
+    scopeSecret(theirs, "DEBUG", ["production"]);
+
+    const result = mergeDocuments(text(base), text(ours), text(theirs));
+    assert.deepEqual(result.conflicts, ["secrets.DEBUG.environments"]);
+    assert.equal(parseDocumentText(result.text).secrets["DEBUG"]?.environments, undefined);
   });
 
   test("the same value changed on both sides conflicts and keeps ours", () => {

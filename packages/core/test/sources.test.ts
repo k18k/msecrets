@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { describe, test } from "node:test";
 
 import {
+  absoluteSourceSpec,
   armor,
   autoSource,
   configDirectory,
@@ -83,6 +84,51 @@ describe("identity sources", () => {
       () => fromCommand([]),
       (error: unknown) => isMsecretsError(error, "USAGE"),
     );
+  });
+
+  test("file: binary passphrase-protected identity files (age without armor)", (t) => {
+    const identity = generateIdentity();
+    const path = join(tempDir(t), "identity.age");
+    writeFileSync(
+      path,
+      encryptAge(Buffer.from(formatIdentityFile(identity)), [scryptRecipient("pw", 10)]),
+    );
+    assert.deepEqual(tokens(fromFile(path, { passphrase: () => "pw" }).load()), [
+      identity.publicKey.token,
+    ]);
+  });
+
+  test("command: runs in the given working directory", (t) => {
+    const identity = generateIdentity();
+    const directory = tempDir(t);
+    writeFileSync(join(directory, "identity.txt"), formatIdentityFile(identity));
+    const source = fromCommand(
+      [
+        process.execPath,
+        "-e",
+        "process.stdout.write(require('node:fs').readFileSync('identity.txt', 'utf8'))",
+      ],
+      { cwd: directory },
+    );
+    assert.deepEqual(tokens(source.load()), [identity.publicKey.token]);
+  });
+
+  test("absoluteSourceSpec pins file paths for the user config", () => {
+    const cwd = resolve("/work/project");
+    assert.equal(absoluteSourceSpec("file:identity.txt", cwd), `file:${join(cwd, "identity.txt")}`);
+    assert.equal(absoluteSourceSpec("./keys/id.txt", cwd), `file:${join(cwd, "keys", "id.txt")}`);
+    assert.equal(absoluteSourceSpec("~/id.txt", cwd), "~/id.txt");
+    assert.equal(absoluteSourceSpec("file:~/id.txt", cwd), "file:~/id.txt");
+    for (const spec of [
+      "op://Private/msecrets/identity",
+      "bw:item",
+      "pass:dev/id",
+      "keychain:work",
+      "env:KEY",
+      "cmd:gopass show x",
+    ]) {
+      assert.equal(absoluteSourceSpec(spec, cwd), spec);
+    }
   });
 
   test("command: first-line mode ignores metadata lines (pass)", () => {

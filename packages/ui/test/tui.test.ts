@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { PassThrough } from "node:stream";
 import { describe, test } from "node:test";
+import { setTimeout as delay } from "node:timers/promises";
 
 import {
   generateIdentity,
@@ -15,7 +16,7 @@ import { Context } from "../src/context.ts";
 import type { InputStream, Io, OutputStream } from "../src/terminal.ts";
 import { TuiApp, fit } from "../src/tui/app.ts";
 import { createSymbols, supportsUnicode } from "../src/symbols.ts";
-import { decodeKeys } from "../src/tui/keys.ts";
+import { KeyReader, decodeKeys } from "../src/tui/keys.ts";
 import { Output, type Workspace, workspace } from "./harness.ts";
 
 const UP = "\u001b[A";
@@ -98,6 +99,39 @@ describe("TUI", () => {
     assert.equal(
       revealValue(file(ws), await context.identities(), "DATABASE_URL", "development"),
       "postgres://prod",
+    );
+  });
+
+  test("the edit field never sends a value's control characters to the terminal", async (t) => {
+    const { app, ws, context } = await setup(t);
+    const hostile = "\u001b]52;c;eA==\u0007\u001b[2Jx";
+    await ws.person("alice").run(["set", "DATABASE_URL", hostile]);
+    app.reload();
+    app.row = app.secrets().indexOf("DATABASE_URL");
+    await app.feed(`${ENTER}${TAB}`);
+    const output = app.render(110, 30).join("\n");
+    assert.ok(!output.includes("\u001b]"), "no OSC sequence");
+    assert.ok(!output.includes("\u001b[2J"), "no screen clear");
+    assert.match(output, /\ufffd\]52;c;eA==\ufffd\ufffd\[2Jx/);
+    // Saving unchanged keeps the exact value.
+    await app.feed(ENTER);
+    assert.equal(
+      revealValue(file(ws), await context.identities(), "DATABASE_URL", "development"),
+      hostile,
+    );
+  });
+
+  test("a value changed elsewhere while editing is not overwritten", async (t) => {
+    const { app, ws, context } = await setup(t);
+    app.row = app.secrets().indexOf("DATABASE_URL");
+    await app.feed(ENTER);
+    await ws.person("alice").run(["set", "DATABASE_URL", "rotated-elsewhere"]);
+    await app.feed(ENTER);
+    assert.equal(app.status?.tone, "error");
+    assert.match(app.status?.text ?? "", /changed while you were editing it; nothing was saved/);
+    assert.equal(
+      revealValue(file(ws), await context.identities(), "DATABASE_URL", "development"),
+      "rotated-elsewhere",
     );
   });
 
@@ -335,6 +369,53 @@ describe("TUI", () => {
     assert.deepEqual(rawModes, [true, false]);
     assert.ok(stdout.text.startsWith("\u001b[?1049h"));
     assert.ok(stdout.text.endsWith("\u001b[?25h\u001b[?1049l"));
+  });
+});
+
+describe("keys split across reads", () => {
+  test("KeyReader holds unfinished escape sequences and UTF-8 characters", () => {
+    const reader = new KeyReader();
+    assert.equal(reader.push("ab\u001b["), "ab");
+    assert.ok(reader.pending);
+    assert.equal(reader.push("D"), "\u001b[D");
+    assert.equal(reader.push("\u001b[1;5"), "");
+    assert.equal(reader.push("C!"), "\u001b[1;5C!");
+    const bytes = Buffer.from("é🔐");
+    assert.equal(reader.push(bytes.subarray(0, 1)), "");
+    assert.equal(reader.push(bytes.subarray(1, 4)), "é");
+    assert.equal(reader.push(bytes.subarray(4)), "🔐");
+    assert.equal(reader.push("\u001b"), "");
+    assert.equal(reader.flush(), "\u001b");
+    assert.equal(reader.pending, false);
+  });
+
+  test("a full-screen session decodes keys split across reads", async (t) => {
+    const ws = workspace(t);
+    const alice = ws.person("alice");
+    await alice.run(["init", "--store", "file", "--name", "alice"]);
+    const stdin = Object.assign(new PassThrough(), { isTTY: true, setRawMode: () => stdin });
+    const stdout = Object.assign(new Output(), { isTTY: true });
+    const io: Io = {
+      stdin: stdin as unknown as InputStream,
+      stdout: stdout as unknown as OutputStream,
+      stderr: new Output() as unknown as OutputStream,
+      env: { MSECRETS_CONFIG_DIR: alice.config, NO_COLOR: "1", TERM: "xterm-256color" },
+      cwd: ws.project,
+    };
+    const session = main([], io);
+    const e = Buffer.from("é");
+    // Separate writes arrive as separate reads.
+    for (const chunk of ["a", "xy", "\u001b[", "D", "z", e.subarray(0, 1), e.subarray(1)]) {
+      stdin.write(chunk);
+    }
+    for (let waited = 0; !stdout.text.includes("xzéy") && waited < 5_000; waited += 10) {
+      await delay(10);
+    }
+    assert.match(stdout.text, /xzéy/, "left arrow in two reads moves the cursor; é in two reads");
+    stdin.write("\u001b");
+    await delay(100);
+    stdin.write("q");
+    assert.equal(await session, 0, "a lone Escape closed the form, then q quit");
   });
 });
 

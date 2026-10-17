@@ -71,7 +71,9 @@ jq -r '.secrets.DATABASE_URL.values.production.data' msecrets.json | base64 -d |
 - Unknown fields are rejected, so typos never pass silently.
 - msecrets writes the file canonically: sorted names, fixed field order, two-space indentation, final newline.
   Unchanged values are never re-encrypted, so diffs stay minimal.
-- Every write is validated, atomic (temporary file and rename), and detects concurrent modification.
+- Every write is validated and atomic (temporary file and rename). msecrets processes take turns through
+  `msecrets.json.lock` (a lock left by a crashed process is cleared automatically), and changes made by anything else
+  during a write, such as an editor or git, are detected.
 
 ## Coming from msecrets 3
 

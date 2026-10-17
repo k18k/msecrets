@@ -4,6 +4,7 @@ import { isAbsolute, relative } from "node:path";
 import {
   type CellState,
   type Identity,
+  MsecretsError,
   type Report,
   type RevokeResult,
   type SecretsDocument,
@@ -33,7 +34,7 @@ import {
 import type { Context } from "../context.ts";
 import { CELL_DESCRIPTIONS, type Symbols, cellStyle } from "../symbols.ts";
 import { type Colors, padEnd, sanitize, visibleLength } from "../terminal.ts";
-import { type Key, decodeKeys } from "./keys.ts";
+import { type Key, KeyReader, decodeKeys } from "./keys.ts";
 
 type View = "secrets" | "environments" | "recipients" | "checks";
 
@@ -512,6 +513,7 @@ export class TuiApp {
     const identities = this.requireIdentities();
     let current = "";
     const value = own(this.document.secrets, secret)?.values[environment];
+    const cell = (document: SecretsDocument) => own(document.secrets, secret)?.values[environment];
     if (value) {
       try {
         current = revealValue(this.document, identities, secret, environment);
@@ -524,9 +526,16 @@ export class TuiApp {
       `${secret} in ${environment}`,
       "enter save · esc cancel · tab show/hide",
       (next) => {
-        this.mutate((document) =>
-          setValue(document, identities, { secret, environment, value: next }),
-        );
+        this.mutate((document) => {
+          // The file may have changed since the form opened (another terminal, a git pull).
+          if (cell(document)?.data !== value?.data) {
+            throw new MsecretsError(
+              "CONFLICT",
+              `${secret} in ${environment} changed while you were editing it; nothing was saved. Open it again to see the new value`,
+            );
+          }
+          setValue(document, identities, { secret, environment, value: next });
+        });
         this.succeed(`Set ${secret} in ${environment}`);
       },
       { value: current, hidden: true },
@@ -953,9 +962,11 @@ export class TuiApp {
           ],
         };
       case "input": {
+        // One display character per code point keeps the cursor aligned; control characters
+        // in a value (escape sequences) are shown, never sent to the terminal.
         const chars = [
           ...(modal.hidden && !modal.revealed ? "•".repeat([...modal.value].length) : modal.value),
-        ];
+        ].map(sanitize);
         const fieldWidth = Math.max(4, inner - 2);
         const start = Math.max(0, modal.cursor - fieldWidth + 1);
         const visible = chars.slice(start, start + fieldWidth);
@@ -1030,7 +1041,10 @@ export async function runTui(context: Context): Promise<number> {
 
   return new Promise((resolve) => {
     let queue = Promise.resolve();
+    const reader = new KeyReader();
+    let escapeTimer: NodeJS.Timeout | undefined;
     const finish = () => {
+      clearTimeout(escapeTimer);
       stdin.removeListener("data", onData);
       io.stdout.removeListener("resize", draw);
       process.removeListener("exit", restore);
@@ -1041,18 +1055,26 @@ export async function runTui(context: Context): Promise<number> {
       restore();
       resolve(0);
     };
-    const onData = (chunk: Buffer | string) => {
+    const handle = (input: string) => {
       queue = queue.then(async () => {
-        if (app.done) {
+        if (app.done || !input) {
           return;
         }
-        await app.feed(chunk.toString());
+        await app.feed(input);
         if (app.done) {
           finish();
         } else {
           draw();
         }
       });
+    };
+    const onData = (chunk: Buffer | string) => {
+      clearTimeout(escapeTimer);
+      handle(reader.push(chunk));
+      if (reader.pending) {
+        // The rest of a sequence follows within milliseconds; a lone Escape does not.
+        escapeTimer = setTimeout(() => handle(reader.flush()), 30);
+      }
     };
 
     // Leave the terminal usable if the process is terminated while the UI is open.

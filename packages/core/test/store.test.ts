@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { spawn } from "node:child_process";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
+import { pathToFileURL } from "node:url";
 
 import {
   DEFAULT_FILENAME,
@@ -113,6 +115,7 @@ describe("store", () => {
       (error: unknown) => isMsecretsError(error, "INVALID_FILE"),
     );
     assert.equal(readFileSync(path, "utf8"), original);
+    assert.equal(existsSync(`${path}.lock`), false);
   });
 
   test("detects concurrent modification", (t) => {
@@ -126,6 +129,46 @@ describe("store", () => {
         }),
       (error: unknown) => isMsecretsError(error, "CONFLICT"),
     );
+  });
+
+  test("concurrent writers take turns instead of overwriting each other", async (t) => {
+    const path = join(tempDir(t), DEFAULT_FILENAME);
+    createDocumentFile(path, sampleDocument().document);
+    const store = pathToFileURL(join(import.meta.dirname, "..", "src", "store.ts")).href;
+    const writers = Array.from(
+      { length: 6 },
+      (_, index) =>
+        new Promise<number | null>((resolve) => {
+          const code = `
+            import { updateDocumentFile } from ${JSON.stringify(store)};
+            updateDocumentFile(${JSON.stringify(path)}, (document) => {
+              // Hold the document long enough that every writer overlaps with another.
+              Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50);
+              document.secrets["WRITER_${index}"] = { values: {} };
+            });`;
+          spawn(process.execPath, ["--input-type=module", "-e", code], { stdio: "inherit" }).on(
+            "exit",
+            resolve,
+          );
+        }),
+    );
+    assert.deepEqual(await Promise.all(writers), [0, 0, 0, 0, 0, 0]);
+    assert.deepEqual(
+      Object.keys(readDocumentFile(path).secrets).filter((name) => name.startsWith("WRITER_")),
+      ["WRITER_0", "WRITER_1", "WRITER_2", "WRITER_3", "WRITER_4", "WRITER_5"],
+    );
+    assert.equal(existsSync(`${path}.lock`), false);
+  });
+
+  test("a lock left behind by a crashed writer is taken over", (t) => {
+    const path = join(tempDir(t), DEFAULT_FILENAME);
+    createDocumentFile(path, sampleDocument().document);
+    writeFileSync(`${path}.lock`, "2147483646");
+    updateDocumentFile(path, (document) => {
+      document.secrets["AFTER_CRASH"] = { values: {} };
+    });
+    assert.ok(readDocumentFile(path).secrets["AFTER_CRASH"]);
+    assert.equal(existsSync(`${path}.lock`), false);
   });
 
   test("a missing file is reported with guidance", (t) => {

@@ -42,10 +42,14 @@ export const IDENTITY_SOURCE_VARIABLE = "MSECRETS_IDENTITY_SOURCE";
 export const PASSPHRASE_VARIABLE = "MSECRETS_PASSPHRASE";
 export const CONTAINER_IDENTITY_NAME = "msecrets_identity";
 
-function parse(text: string, label: string, options: SourceOptions): LoadedIdentity[] {
+function parse(
+  contents: string | Uint8Array,
+  label: string,
+  options: SourceOptions,
+): LoadedIdentity[] {
   try {
     const passphrase = options.passphrase;
-    return parseIdentities(text, passphrase ? { passphrase: () => passphrase(label) } : {}).map(
+    return parseIdentities(contents, passphrase ? { passphrase: () => passphrase(label) } : {}).map(
       (identity) => ({
         identity,
         source: label,
@@ -138,7 +142,8 @@ export function fromFile(
           cause: error,
         });
       }
-      return parse(contents.toString("utf8"), label, options);
+      // Bytes, not text: a passphrase-protected identity file may be binary age.
+      return parse(contents, label, options);
     },
   };
 }
@@ -167,6 +172,7 @@ export function fromCommand(
         windowsVerbatimArguments: plan.verbatim,
         maxBuffer: 1024 * 1024,
         env,
+        ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
       });
       if (result.error) {
         const missing = (result.error as NodeJS.ErrnoException).code === "ENOENT";
@@ -269,6 +275,20 @@ export function parseSourceSpec(spec: string, options: SourceOptions = {}): Iden
         `Unknown identity source "${trimmed}"; use env:, file:, keychain:, op://, bw:, pass:, cmd:, or a path`,
       );
   }
+}
+
+/**
+ * Makes a source spec independent of the working directory, for the user
+ * config: relative file paths become absolute. Other specs are unchanged.
+ */
+export function absoluteSourceSpec(spec: string, cwd: string): string {
+  const trimmed = spec.trim();
+  const path = trimmed.startsWith("file:")
+    ? trimmed.slice("file:".length)
+    : !trimmed.startsWith("op://") && looksLikePath(trimmed)
+      ? trimmed
+      : undefined;
+  return path === undefined || /^~(?:[\\/]|$)/.test(path) ? trimmed : `file:${resolve(cwd, path)}`;
 }
 
 // Developer configuration

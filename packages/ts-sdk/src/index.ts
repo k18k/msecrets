@@ -8,6 +8,7 @@ import {
   own,
   parseDocument,
   parseSourceSpec,
+  passphraseFromEnv,
   revealValue,
   secretEnvironments,
 } from "../../core/src/index.ts";
@@ -59,14 +60,18 @@ export type ClientOptions = {
   identities?: readonly (IdentitySource | string)[];
 };
 
-function toSource(entry: IdentitySource | string): IdentitySource {
-  if (typeof entry !== "string") {
-    return entry;
-  }
-  const trimmed = entry.trim();
-  return /^AGE-SECRET-KEY-|^-----BEGIN /i.test(trimmed)
-    ? fromString(trimmed)
-    : parseSourceSpec(trimmed);
+function toSources(entries: readonly (IdentitySource | string)[]): IdentitySource[] {
+  // Like the default chain, encrypted identity files unlock with MSECRETS_PASSPHRASE.
+  const options = { passphrase: passphraseFromEnv() };
+  return entries.map((entry) => {
+    if (typeof entry !== "string") {
+      return entry;
+    }
+    const trimmed = entry.trim();
+    return /^AGE-SECRET-KEY-|^-----BEGIN /i.test(trimmed)
+      ? fromString(trimmed, "inline identity", options)
+      : parseSourceSpec(trimmed, options);
+  });
 }
 
 /**
@@ -94,7 +99,7 @@ export function createClient<F extends SecretsFile>(
     );
   }
 
-  const sources = options.identities?.map(toSource) ?? [autoSource()];
+  const sources = options.identities ? toSources(options.identities) : [autoSource()];
   const identities = names.length ? loadIdentities(sources).map((entry) => entry.identity) : [];
   if (names.length && !identities.length) {
     throw new MsecretsError(

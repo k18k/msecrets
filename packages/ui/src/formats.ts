@@ -87,7 +87,8 @@ export function formatDotenv(values: Readonly<Record<string, string>>): string {
       if (/^[A-Za-z0-9_./:@%+,=-]*$/.test(value)) {
         return `${name}=${value}`;
       }
-      if (!value.includes("'") && !value.includes("\n")) {
+      // Single quotes are literal, but parsers normalize line breaks: CR and LF need escapes.
+      if (!/['\n\r]/.test(value)) {
         return `${name}='${value}'`;
       }
       return `${name}="${value.replace(/[\\"\n\r\t]/g, (char) => ({ "\\": "\\\\", '"': '\\"', "\n": "\\n", "\r": "\\r", "\t": "\\t" })[char] ?? char)}"`;

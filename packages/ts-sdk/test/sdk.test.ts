@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { describe, test } from "node:test";
 import { inspect } from "node:util";
 
+import { armor, encryptAge, scryptRecipient } from "../../core/src/index.ts";
 import { tempDir } from "../../core/test/helpers.ts";
 import { type IdentitySource, createClient, injectEnv, isMsecretsError } from "../src/index.ts";
 import fixture from "./fixtures/app.ms.json" with { type: "json" };
@@ -78,6 +79,24 @@ describe("createClient", () => {
       identities: [`file:${join(directory, "key.txt")}`],
     });
     assert.equal(secrets.SENTRY_DSN, "https://sentry.example/1");
+  });
+
+  test("explicit sources unlock encrypted identity files with MSECRETS_PASSPHRASE", (t) => {
+    const path = join(tempDir(t), "key.age");
+    writeFileSync(path, armor(encryptAge(Buffer.from(PRODUCTION), [scryptRecipient("pw", 10)])));
+    const previous = process.env["MSECRETS_PASSPHRASE"];
+    process.env["MSECRETS_PASSPHRASE"] = "pw";
+    try {
+      const secrets = createClient(fixture, { env: "production", identities: [`file:${path}`] });
+      assert.equal(secrets.SENTRY_DSN, "https://sentry.example/1");
+      assert.equal(process.env["MSECRETS_PASSPHRASE"], undefined, "read once, then scrubbed");
+    } finally {
+      if (previous === undefined) {
+        delete process.env["MSECRETS_PASSPHRASE"];
+      } else {
+        process.env["MSECRETS_PASSPHRASE"] = previous;
+      }
+    }
   });
 
   test("identity source errors surface", () => {

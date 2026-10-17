@@ -1,3 +1,5 @@
+import { StringDecoder } from "node:string_decoder";
+
 export type Key =
   | { name: "char"; char: string }
   | {
@@ -93,4 +95,35 @@ export function decodeKeys(input: string): Key[] {
     }
   }
   return keys;
+}
+
+/** An escape sequence that has started but not finished (or a lone Escape). */
+const UNFINISHED = /\u001b(?:O|\[[0-9;?]*[ -/]*)?$/;
+
+/**
+ * Terminal input arrives in chunks that may split a UTF-8 character or an
+ * escape sequence. The reader holds such a tail until the next chunk, or until
+ * `flush()` (after a short pause, a lone Escape is the Escape key).
+ */
+export class KeyReader {
+  readonly #utf8 = new StringDecoder("utf8");
+  #pending = "";
+
+  /** Returns the input that is complete so far. */
+  push(chunk: Buffer | string): string {
+    const text = this.#pending + (typeof chunk === "string" ? chunk : this.#utf8.write(chunk));
+    const unfinished = UNFINISHED.exec(text);
+    this.#pending = unfinished ? unfinished[0] : "";
+    return unfinished ? text.slice(0, unfinished.index) : text;
+  }
+
+  get pending(): boolean {
+    return this.#pending !== "";
+  }
+
+  flush(): string {
+    const text = this.#pending;
+    this.#pending = "";
+    return text;
+  }
 }

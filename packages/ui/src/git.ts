@@ -126,6 +126,11 @@ function merge3(
     return ours;
   }
   if (isNameSet(path)) {
+    // A secret without "environments" applies to every environment; that is not a list to merge.
+    if (path[0] === "secrets" && ![base, ours, theirs].every(Array.isArray)) {
+      conflicts.push(path.join("."));
+      return ours;
+    }
     return mergeNameSets(base, ours, theirs);
   }
   if (!isAtomic(path) && isObject(ours) && isObject(theirs)) {

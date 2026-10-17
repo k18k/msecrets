@@ -1,6 +1,8 @@
 /**
- * Publishes every package whose version is not on npm yet, then tags it and
- * creates a GitHub release. Idempotent: re-running publishes nothing new.
+ * Publishes every package whose version is not on npm yet, then makes sure its
+ * tag and GitHub release exist. Each step checks its own state, so re-running
+ * after a partial failure (npm published, tag push or release failed) completes
+ * the rest.
  *
  * Runs in the release workflow with npm trusted publishing (OIDC). Provenance is
  * attached when the repository is public.
@@ -28,23 +30,29 @@ for (const name of ["ts-sdk", "ui"]) {
     encoding: "utf8",
   });
   if (existing.status === 0 && existing.stdout.trim() === manifest.version) {
-    console.log(`${spec} is already published`);
-    continue;
+    console.log(`${spec} is already on npm`);
+  } else {
+    console.log(`Publishing ${spec}${provenance ? " with provenance" : ""}`);
+    execFileSync(
+      process.execPath,
+      [npmCli, "publish", "--access", "public", ...(provenance ? ["--provenance"] : [])],
+      { cwd: directory, stdio: "inherit" },
+    );
   }
 
-  console.log(`Publishing ${spec}${provenance ? " with provenance" : ""}`);
-  execFileSync(
-    process.execPath,
-    [npmCli, "publish", "--access", "public", ...(provenance ? ["--provenance"] : [])],
-    {
-      cwd: directory,
-      stdio: "inherit",
-    },
-  );
-
+  // The tag marks the commit this workflow run built and published.
   const tag = spec;
-  if (spawnSync("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`]).status !== 0) {
-    execFileSync("git", ["tag", tag], { stdio: "inherit" });
+  const remoteTag = spawnSync("git", [
+    "ls-remote",
+    "--exit-code",
+    "--tags",
+    "origin",
+    `refs/tags/${tag}`,
+  ]);
+  if (remoteTag.status !== 0) {
+    if (spawnSync("git", ["rev-parse", "--verify", "--quiet", `refs/tags/${tag}`]).status !== 0) {
+      execFileSync("git", ["tag", tag], { stdio: "inherit" });
+    }
     execFileSync("git", ["push", "origin", `refs/tags/${tag}`], { stdio: "inherit" });
   }
   if (spawnSync("gh", ["release", "view", tag]).status !== 0) {

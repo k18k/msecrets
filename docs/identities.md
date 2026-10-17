@@ -33,7 +33,9 @@ and `msecrets check` warns about it.
 
 `msecrets init`, `join`, and `identity new` create a key and store it in the OS keychain: the macOS Keychain, the
 Windows Credential Manager, or the Linux Secret Service (`secret-tool`). Where none is available they fall back to a
-private file in your config directory (`--passphrase` encrypts it).
+private file in your config directory (`--passphrase` encrypts it). They never replace a key that is already stored
+there: it may be the only copy that decrypts your secrets. Use `--account NAME` for another key, or
+`msecrets identity use keychain:default` to use the existing one.
 
 To use a password manager instead, put the key there and point msecrets at it:
 

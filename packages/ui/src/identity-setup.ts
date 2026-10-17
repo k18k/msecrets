@@ -13,7 +13,9 @@ import {
   encryptAge,
   formatIdentityFile,
   generateIdentity,
+  isMsecretsError,
   nameProblem,
+  readKeychain,
   readUserConfig,
   scryptRecipient,
   writeKeychain,
@@ -87,10 +89,17 @@ export async function storeIdentity(
 
   if (target === "keychain" || (target === undefined && !options.passphrase)) {
     try {
+      // Never replace a stored key: it may be the only copy that decrypts existing secrets.
+      if (readKeychain(account) !== null) {
+        throw new MsecretsError(
+          "CONFLICT",
+          `The OS keychain already holds an msecrets identity "${account}". To use it, run \`msecrets identity use keychain:${account}\`; to create another one, pass --account NAME`,
+        );
+      }
       writeKeychain(account, identity.secret);
       return `keychain:${account}`;
     } catch (error) {
-      if (target === "keychain") {
+      if (target === "keychain" || isMsecretsError(error, "CONFLICT")) {
         throw error;
       }
       context.note(

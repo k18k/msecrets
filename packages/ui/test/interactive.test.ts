@@ -234,6 +234,44 @@ describe(
       assert.match(whoami.stdout, /from OS keychain \(default\)/);
     });
 
+    test("an identity already in the keychain is never replaced", async (t) => {
+      const tools = tempDir(t);
+      fakeKeychainTools(tools);
+      const path = `${tools}:${process.env["PATH"] ?? ""}`;
+      const previous = process.env["PATH"];
+      process.env["PATH"] = path;
+      t.after(() => {
+        process.env["PATH"] = previous;
+      });
+      const store = () => readFileSync(join(tools, "store.json"), "utf8");
+
+      const ws = workspace(t);
+      const alice = ws.person("alice");
+      ok(await alice.run(["identity", "new", "--store", "keychain"], { env: { PATH: path } }));
+      const original = store();
+
+      const again = await alice.run(["identity", "new", "--store", "keychain"], {
+        env: { PATH: path },
+      });
+      assert.equal(again.code, 1);
+      assert.match(again.stderr, /already holds an msecrets identity "default"/);
+      assert.equal(store(), original);
+
+      // A new config directory (no sources configured) must not overwrite it either.
+      const fresh = ws.person("alice-on-a-new-config");
+      const init = await fresh.run(["init", "--name", "alice"], { env: { PATH: path } });
+      assert.equal(init.code, 1);
+      assert.match(init.stderr, /msecrets identity use keychain:default/);
+      assert.equal(store(), original);
+
+      ok(
+        await alice.run(["identity", "new", "--store", "keychain", "--account", "work"], {
+          env: { PATH: path },
+        }),
+      );
+      assert.equal(Object.keys(JSON.parse(store()) as object).length, 2);
+    });
+
     test("without a working keychain, init falls back to a private file", async (t) => {
       // An empty PATH: no keychain tool can run, and the real keychain is never touched.
       const empty = tempDir(t);

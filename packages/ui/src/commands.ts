@@ -13,15 +13,13 @@ import { dirname, join, relative, resolve } from "node:path";
 import {
   type CellState,
   DEFAULT_FILENAME,
-  IDENTITY_FILE_VARIABLE,
-  IDENTITY_SOURCE_VARIABLE,
   IDENTITY_VARIABLE,
   type IdentitySource,
   MsecretsError,
-  PASSPHRASE_VARIABLE,
   type RevokeResult,
   type SecretsDocument,
   type SyncResult,
+  absoluteSourceSpec,
   addEnvironment,
   addRecipient,
   createDocument,
@@ -432,7 +430,8 @@ const identityUse: Command = {
     if (!loaded.length) {
       throw new MsecretsError("IDENTITY_SOURCE", `${source} did not yield any identity`);
     }
-    const configPath = addIdentitySource(context, source);
+    // The config is shared by every directory: store file paths absolute.
+    const configPath = addIdentitySource(context, absoluteSourceSpec(source, context.io.cwd));
     context.success(
       `Using ${source} (${loaded.length} identit${loaded.length === 1 ? "y" : "ies"}); saved in ${configPath}`,
     );
@@ -1136,15 +1135,7 @@ const run: Command = {
     }
     const { environment, values } = await decryptEnvironment(context, flags);
 
-    const env: NodeJS.ProcessEnv = { ...context.io.env };
-    for (const variable of [
-      IDENTITY_VARIABLE,
-      IDENTITY_FILE_VARIABLE,
-      IDENTITY_SOURCE_VARIABLE,
-      PASSPHRASE_VARIABLE,
-    ]) {
-      delete env[variable];
-    }
+    const env = await context.childEnv();
     const override = flagBoolean(flags, "override");
     const injected = Object.entries(values).filter(([name]) => override || env[name] === undefined);
     for (const [name, value] of injected) {
