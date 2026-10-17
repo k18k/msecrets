@@ -108,7 +108,8 @@ msecrets recipient add deploy --generate --env production | gh secret set MSECRE
 The machine key is printed once, never stored. At runtime, provide it as `MSECRETS_IDENTITY`, or mount it at
 `/run/secrets/msecrets_identity` (Docker, Swarm, Compose) or as the systemd credential `msecrets_identity`.
 `msecrets run` and the SDK remove it from the environment before your app starts. Machine keys created this way can
-read but never write.
+read but never write. Set `MSECRETS_ENV` (for example `production`) next to it. A complete GitHub Actions setup:
+https://k18k.github.io/msecrets/runtime/#github-actions
 
 ## AI coding agents
 

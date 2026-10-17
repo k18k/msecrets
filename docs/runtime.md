@@ -92,17 +92,53 @@ secrets:
     environment: MSECRETS_IDENTITY
 ```
 
+Machine keys made with `--generate` can read their environments but never write: their public key has no signing
+key. Give each deployment target its own key so you can revoke one without touching the others.
+
+## GitHub Actions
+
+Create a key for the workflow and send it straight to a GitHub secret, so it never appears on screen, in your shell
+history, or on disk:
+
+```bash
+npx msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
+git add msecrets.json && git commit -m "GitHub Actions can read production secrets" && git push
+```
+
+This adds the read-only recipient `github-actions` to `production`, re-encrypts the production values for it with
+your key, and stores its private key as the repository secret `MSECRETS_IDENTITY`. If `gh` fails (not logged in),
+replace the key with `npx msecrets recipient rotate github-actions --generate | gh secret set MSECRETS_IDENTITY`.
+
 {% raw %}
 ```yaml
-# GitHub Actions
-- run: npx msecrets run --env production -- ./deploy.sh
-  env:
-    MSECRETS_IDENTITY: ${{ secrets.MSECRETS_IDENTITY }}
+# .github/workflows/deploy.yml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production # optional: GitHub Environments add approvals and branch rules
+    env:
+      MSECRETS_IDENTITY: ${{ secrets.MSECRETS_IDENTITY }}
+      MSECRETS_ENV: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: node deploy.ts # createClient(file) reads the key and the environment from the variables above
+      - run: npx msecrets run -- ./deploy.sh # or any other tool, with the secrets as environment variables
 ```
 {% endraw %}
 
-Machine keys made with `--generate` can read their environments but never write: their public key has no signing
-key. Give each deployment target its own key so you can revoke one without touching the others.
+- **One key per target.** `github-actions-staging` with `--env staging`, and so on: a leaked key opens only its
+  environment.
+- **Protect production with GitHub Environments.** `gh secret set MSECRETS_IDENTITY --env production` stores the
+  secret in the `production` environment instead of the repository; only jobs with `environment: production` get
+  it, after the approvals you configure.
+- **Check every pull request.** `npx msecrets check` needs no key, so it also runs for pull requests from forks,
+  which never receive secrets.
+- **Revoke.** `npx msecrets recipient rm github-actions` re-encrypts everything without the key; then delete the
+  GitHub secret and rotate the values msecrets lists.
 
 ## API
 

@@ -157,6 +157,46 @@ them: `npx msecrets mv OLD NEW` (then update the code; the types point at every 
 3. The app runs unchanged; `createClient(file)` picks both up. The key is removed from `process.env` after loading.
 4. CI runs `npx msecrets check` (no key needed) so incomplete environments never merge.
 
+Never create machine keys yourself or pass them through the conversation: give the person the commands.
+
+### GitHub Actions
+
+The person creates the key and pipes it straight into a GitHub secret, so it is never printed:
+
+```bash
+npx msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
+git add msecrets.json && git commit -m "GitHub Actions can read production secrets"
+```
+
+You may write the workflow:
+
+```yaml
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      MSECRETS_IDENTITY: ${{ secrets.MSECRETS_IDENTITY }}
+      MSECRETS_ENV: production
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci
+      - run: node deploy.ts # createClient(file) reads both variables
+      - run: npx msecrets run -- ./deploy.sh # other tools get the secrets as environment variables
+```
+
+- One key per target and environment (`github-actions-staging` with `--env staging`, …).
+- With GitHub Environments, `gh secret set MSECRETS_IDENTITY --env production` limits the key to jobs with
+  `environment: production`, behind its approval rules.
+- Pull request workflows run `npx msecrets check` without any key.
+- Never print the secrets in a workflow (`msecrets export`, `env`, `echo`); logs are readable by everyone with access
+  to the repository.
+- If `gh secret set` failed, replace the key: `npx msecrets recipient rotate github-actions --generate | gh secret set MSECRETS_IDENTITY`.
+- Revoke with `npx msecrets recipient rm github-actions`, delete the GitHub secret, and rotate the values it lists.
+
 ## Explaining msecrets to a person
 
 When someone asks how to use it, point them to the step they need:

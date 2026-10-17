@@ -40,6 +40,16 @@ through `injectEnv(file)`. See the [runtime docs](https://k18k.github.io/msecret
 
 **Documentation: https://k18k.github.io/msecrets/**
 
+### CI and deployment
+
+```bash
+npx msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
+```
+
+A read-only key for the workflow goes straight into a GitHub secret. The job sets `MSECRETS_IDENTITY` from it and
+`MSECRETS_ENV: production`, then runs `node deploy.ts` as usual. Docker, systemd, and other platforms work the same
+way: [CI and containers](https://k18k.github.io/msecrets/runtime/#containers-and-ci).
+
 ### AI coding agents
 
 ```bash
