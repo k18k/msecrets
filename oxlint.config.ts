@@ -1,12 +1,17 @@
 import { defineConfig } from "oxlint";
 
 export default defineConfig({
-  ignorePatterns: ["**/routeTree.gen.ts"],
   categories: {
     correctness: "error",
+    suspicious: "error",
   },
-  plugins: ["typescript", "unicorn", "oxc"],
+  plugins: ["typescript", "unicorn", "oxc", "node"],
   env: {
     builtin: true,
+    node: true,
+  },
+  rules: {
+    // Terminal code matches ANSI escape sequences on purpose.
+    "no-control-regex": "off",
   },
 });

@@ -1,0 +1,14 @@
+{
+  "name": "msecrets",
+  "description": "msecrets: encrypted secrets that live in your repository",
+  "owner": {
+    "name": "Krystian Mikołajczyk"
+  },
+  "plugins": [
+    {
+      "name": "msecrets",
+      "source": "./packages/ui",
+      "description": "Teaches Claude to read msecrets secrets with @msecrets/ts-sdk and to manage them without ever seeing a value"
+    }
+  ]
+}

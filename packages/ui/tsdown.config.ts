@@ -1,11 +1,11 @@
-import { defineConfig } from "tsdown/config";
+import { type UserConfig, defineConfig } from "tsdown";
 
-export default defineConfig({
-  entry: "./server/start.ts",
-  exports: {
-    bin: {
-      "@msecrets/ui": "./server/start.ts",
-    },
-  },
+const config: UserConfig = defineConfig({
+  entry: { bin: "src/bin.ts" },
   format: ["esm"],
+  platform: "node",
+  dts: false,
+  clean: true,
 });
+
+export default config;

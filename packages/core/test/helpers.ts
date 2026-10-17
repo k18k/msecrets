@@ -1,138 +1,65 @@
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { TestContext } from "node:test";
 
-import * as openpgp from "openpgp";
+import {
+  type Identity,
+  type SecretsDocument,
+  addEnvironment,
+  addRecipient,
+  createDocument,
+  generateIdentity,
+  readOnlyPublicKey,
+  scopeSecret,
+  setValue,
+} from "../src/index.ts";
 
-import type { WorkflowKeyAccess } from "../src/workflows.ts";
-import type { SecretsFile } from "../src/types.ts";
-
-export type TestKeyMaterial = {
-  fingerprint: string;
-  privateKey: string;
-  publicKey: string;
-  userIds: string[];
-};
-
-export function createTempSecretsPath() {
-  const dir = mkdtempSync(join(tmpdir(), "msecrets-core-workflows-"));
-  return join(dir, ".env.ms.json");
+export function tempDir(t: TestContext): string {
+  const directory = mkdtempSync(join(tmpdir(), "msecrets-test-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  return directory;
 }
 
-export function createFixtureFile(): SecretsFile {
+export type Team = { alice: Identity; bob: Identity; carol: Identity; ci: Identity };
+
+export function team(): Team {
   return {
-    version: "2.0.0",
-    environments: ["development", "staging"],
-    keys: [
-      {
-        fingerprint: "owner-1",
-        publicKey: "public-key-1",
-        userIds: ["Owner One"],
-      },
-      {
-        fingerprint: "owner-2",
-        publicKey: "public-key-2",
-        userIds: ["Owner Two"],
-      },
-    ],
-    secrets: {
-      API_KEY: {
-        description: "api key",
-        values: {
-          development: {
-            encryptedValue: "ciphertext-dev",
-            owners: ["owner-1"],
-          },
-          staging: {
-            encryptedValue: "ciphertext-staging",
-            owners: ["owner-1", "owner-2"],
-          },
-        },
-      },
-      STAGING_ONLY: {
-        values: {
-          staging: {
-            encryptedValue: "ciphertext-staging-only",
-            owners: ["owner-1"],
-          },
-        },
-      },
-    },
+    alice: generateIdentity(),
+    bob: generateIdentity(),
+    carol: generateIdentity(),
+    ci: generateIdentity(),
   };
 }
 
-export async function generateTestKey(name: string): Promise<TestKeyMaterial> {
-  const keyPair = await openpgp.generateKey({
-    type: "curve25519",
-    userIDs: [{ name }],
+/** The plain, encrypt-only `age1…` form of an X25519 identity's public key. */
+export function readOnlyToken(identity: Identity): string {
+  return readOnlyPublicKey(identity.publicKey).token;
+}
+
+/**
+ * - development: alice, bob
+ * - production: alice, ci (read-only age1 key)
+ * - DATABASE_URL in both environments, DEBUG only in development
+ */
+export function sampleDocument(people: Team = team()): { document: SecretsDocument; people: Team } {
+  const document = createDocument();
+  addRecipient(document, "alice", people.alice.publicKey.token);
+  addRecipient(document, "bob", people.bob.publicKey.token);
+  addRecipient(document, "ci", readOnlyToken(people.ci));
+  addEnvironment(document, "development", ["alice", "bob"]);
+  addEnvironment(document, "production", ["alice", "ci"]);
+  setValue(document, [people.alice], {
+    secret: "DATABASE_URL",
+    environment: "development",
+    value: "postgres://dev",
   });
-  const privateKey = await openpgp.readPrivateKey({
-    armoredKey: keyPair.privateKey,
+  setValue(document, [people.alice], {
+    secret: "DATABASE_URL",
+    environment: "production",
+    value: "postgres://prod",
   });
-
-  return {
-    fingerprint: privateKey.getFingerprint(),
-    privateKey: keyPair.privateKey,
-    publicKey: keyPair.publicKey,
-    userIds: [name],
-  };
-}
-
-export function createKeyAccess(keys: TestKeyMaterial[]): WorkflowKeyAccess {
-  return {
-    async listAllKeys() {
-      return keys.map(({ fingerprint, userIds }) => ({
-        fingerprint,
-        userIds,
-      }));
-    },
-    async getPublicKey(fingerprint) {
-      const key = keys.find((candidate) => candidate.fingerprint === fingerprint);
-      if (!key) {
-        return null;
-      }
-
-      return {
-        fingerprint: key.fingerprint,
-        publicKey: key.publicKey,
-        userIds: key.userIds,
-      };
-    },
-    async getPrivateKey(fingerprint) {
-      const key = keys.find((candidate) => candidate.fingerprint === fingerprint);
-      if (!key) {
-        return null;
-      }
-
-      return {
-        fingerprint: key.fingerprint,
-        privateKey: key.privateKey,
-        userIds: key.userIds,
-      };
-    },
-  };
-}
-
-export function createMissingPrivateKeyAccess(
-  keys: TestKeyMaterial[],
-  unavailableFingerprints: string[],
-): WorkflowKeyAccess {
-  const fullKeyAccess = createKeyAccess(keys);
-  const missing = new Set(unavailableFingerprints);
-
-  return {
-    async listAllKeys() {
-      return fullKeyAccess.listAllKeys();
-    },
-    async getPublicKey(fingerprint) {
-      return fullKeyAccess.getPublicKey(fingerprint);
-    },
-    async getPrivateKey(fingerprint) {
-      if (missing.has(fingerprint)) {
-        return null;
-      }
-
-      return fullKeyAccess.getPrivateKey(fingerprint);
-    },
-  };
+  setValue(document, [people.bob], { secret: "DEBUG", environment: "development", value: "true" });
+  scopeSecret(document, "DEBUG", ["development"]);
+  return { document, people };
 }

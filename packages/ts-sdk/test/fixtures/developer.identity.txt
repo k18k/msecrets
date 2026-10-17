@@ -1,0 +1,4 @@
+# msecrets identity: keep this secret, never commit it
+# TEST ONLY: fixture key, never use for real secrets
+# public key: msecrets1qy5r73q25sxpfth5mh0kg2ll5aalf37mfwxt9gk2xp96uxqag2vkqu7fhy8hqa7mcsrhddgumtw9n9fxhxc8rz90p296z4szrlc649j23xywju
+AGE-SECRET-KEY-165GLL7JVP2EGMNC7CW5AA9WAN7H9FEKCNRPRFK7X0K9P26TTLVUSKHHTN2

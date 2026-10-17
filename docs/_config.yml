@@ -4,3 +4,7 @@ url: https://k18k.github.io
 baseurl: /msecrets
 markdown: kramdown
 permalink: pretty
+exclude:
+  - package.json
+  - Gemfile
+  - Gemfile.lock

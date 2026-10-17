@@ -1,43 +1,44 @@
 {
   "name": "@msecrets/ts-sdk",
-  "version": "3.0.1",
-  "description": "TypeScript SDK for runtime secret decryption with msecrets",
+  "version": "4.0.0",
+  "description": "Runtime SDK for msecrets: verify and decrypt the secrets committed in msecrets.json. Zero dependencies.",
   "keywords": [
+    "age",
+    "dotenv",
     "encryption",
-    "openpgp",
-    "sdk",
+    "env",
+    "post-quantum",
     "secrets",
     "secrets-management"
   ],
+  "homepage": "https://k18k.github.io/msecrets/",
+  "bugs": "https://github.com/k18k/msecrets/issues",
   "license": "MIT",
   "author": "Krystian Mikołajczyk",
   "repository": {
     "type": "git",
-    "url": "https://github.com/k18k/msecrets"
+    "url": "git+https://github.com/k18k/msecrets.git",
+    "directory": "packages/ts-sdk"
   },
   "files": [
-    "dist"
+    "dist",
+    "schema"
   ],
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.cts",
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
-    },
-    "./adapters/docker-secrets": {
-      "import": "./dist/adapters/docker-secrets.mjs",
-      "require": "./dist/adapters/docker-secrets.cjs"
-    },
-    "./adapters/gpg": {
-      "import": "./dist/adapters/gpg.mjs",
-      "require": "./dist/adapters/gpg.cjs"
-    },
-    "./adapters/raw-pks": {
-      "import": "./dist/adapters/raw-pks.mjs",
-      "require": "./dist/adapters/raw-pks.cjs"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -45,19 +46,9 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "node --watch --test e2e.test.ts",
-    "test": "node --test --test-timeout=60000 **/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json",
     "build": "tsdown"
   },
-  "devDependencies": {
-    "@msecrets/core": "*"
-  },
   "engines": {
-    "node": ">=24"
-  },
-  "engineStrict": true,
-  "inlinedDependencies": {
-    "openpgp": "6.3.0"
+    "node": ">=20"
   }
 }

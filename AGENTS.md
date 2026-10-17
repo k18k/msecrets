@@ -1,212 +1,83 @@
 ## Purpose
 
-This repository implements **msecrets**: a repository-native encrypted secrets system.
+This repository implements **msecrets v4**: encrypted secrets that live in the repository.
 
-Core idea:
-
-- One committed JSON file (`.env.ms.json`)
-- Per-secret encryption
-- Access control via OpenPGP recipients
-- No mandatory external KMS
-- Runtime decryption via adapters
-
-This file defines how AI agents should understand and modify the codebase after the MVP release path has been established.
+- One committed JSON file (`msecrets.json`, format version 4)
+- Every value is an independent age file, encrypted to the recipients of its environment
+- Every value is signed (Ed25519) by a recipient of its environment
+- No server, no KMS, no dependencies
 
 ---
 
-## High-Level Architecture
+## Architecture
 
-Monorepo structure:
+- `packages/core` (private, never published on its own)
+  - `src/crypto`: age v1 (X25519, MLKEM768-X25519, scrypt, ssh-ed25519), bech32, base64, bcrypt_pbkdf, primitives on `node:crypto`
+  - `src/keys.ts`: identities and public keys (`msecrets1…`, `age1…`, `age1pq1…`, `ssh-ed25519`)
+  - `src/document.ts`: the v4 file format, validation, canonical serialization
+  - `src/values.ts`: sealing, signatures, verification
+  - `src/status.ts`: completeness, drift, and signature inspection (public data only)
+  - `src/operations.ts`: all mutations, as transactions on a document copy
+  - `src/store.ts`: file discovery and atomic, conflict-checked writes
+  - `src/sources.ts`, `src/keychain.ts`: where private keys come from
+- `packages/ts-sdk` (`@msecrets/ts-sdk`): `createClient(file)` (typed secrets from an imported file), `injectEnv`
+- `packages/ui` (`@msecrets/ui`, bin `msecrets`): CLI commands, terminal UI, `run`, git integration
+  - `skills/msecrets/SKILL.md`: the agent skill, published with the package, installed by `msecrets skill`, and served
+    as a Claude Code plugin (`.claude-plugin/`). Keep it in sync with the CLI and SDK (a test checks commands,
+    imports, error codes, and the plugin version).
 
-- `packages/core`
-  - Pure logic
-  - File format, validation, workflows
-  - OpenPGP-native crypto and shared runtime contracts
-- `packages/ts-sdk`
-  - Runtime consumption layer
-  - Adapter-based decryption client
-- `packages/core/src/adapters`
-  - Runtime decryption providers (gpg, docker secrets, raw OpenPGP private keys)
-- `packages/ui`
-  - Dashboard launched through `msecrets ui`
+Packages import core through relative paths; tsdown bundles it. Published packages must have **no dependencies**.
 
 ---
 
 ## Critical Design Rules
 
-### 1. GPG is convenience-only
+### 1. Core is the source of truth
 
-- OpenPGP is the real system.
-- ASCII-armored OpenPGP keys and messages are the portable artifacts.
-- GPG is a convenience bridge for key acquisition only.
-- Repository state must not depend conceptually on the local GPG keyring.
+- All business logic lives in core. The CLI, TUI, and SDK only call core operations and render results.
+- Operations mutate a document copy; `updateDocumentFile` validates and writes atomically. Never write the file elsewhere.
 
-Agents MUST:
+### 2. The file is the compatibility contract
 
-- Avoid deepening GPG coupling.
-- Never make core workflows depend on `gpg --encrypt` or `gpg --decrypt`.
-- Prefer provider/adapter abstractions over direct `gpg` usage.
-- Base portability guarantees on armored OpenPGP keys/messages, not local GPG state.
+- `msecrets.json` v4 must stay readable by every v4 release. Breaking it requires explicit instruction and a new `version`.
+- The file holds no runtime-only or machine-specific data. Keys and identity sources never come from the file.
+- The SDK takes the imported file (`createClient(file)`) and never searches for or reads it; its secret names
+  type the result.
+- Keep `packages/ts-sdk/schema/v4.json` in sync with `document.ts` (a test enforces the name and key patterns).
 
-### 2. Core is the source of truth
+### 3. Security invariants
 
-- All business logic belongs in `@msecrets/core`.
-- UI must stay thin.
+- Never decrypt or re-encrypt a value whose signature does not verify; never re-sign without verifying first.
+- Revocation must re-encrypt every affected value or fail (unless the caller explicitly allows incomplete).
+- Writers must be recipients of the environment with a signing key; machine keys from `--generate` are read-only.
+- Never put secrets on command lines; pass them through stdin. Scrub identity variables before running user code.
+- Parsers of untrusted input (age headers, keys, files) are strict and reject non-canonical encodings.
+- Never print untrusted text with control characters (terminal escape injection): validate or sanitize it.
 
-Agents MUST:
+### 4. Standards over invention
 
-- Never duplicate core logic in UI/SDK layers.
-- Extend core workflows instead of reimplementing behavior elsewhere.
-- Keep validation close to the file format and workflow boundaries.
-
-### 3. SDK and adapters are the runtime path
-
-- The UI is the authoring interface.
-- The SDK is the primary runtime interface.
-- Adapters provide runtime key access.
-
-Adapter rules:
-
-- Adapters MUST be stateless.
-- Adapters MUST NOT mutate global state.
-- Adapters MUST return plaintext only.
-
-### 4. Secrets file is the compatibility contract
-
-File:
-
-```text
-.env.ms.json
-```
-
-Rules:
-
-- Must remain portable.
-- Must remain tool-independent.
-- Must not depend on local environment state.
-- Must not include runtime-only data.
-- Must preserve v1 compatibility unless the user explicitly asks for a breaking format change.
-- This is the only backward compatibility boundary agents should treat as hard. Package APIs are prebundled for standalone use and may change when the `.env.ms.json` shape remains compatible.
-
-### 5. Encryption model
-
-- Each secret is encrypted independently.
-- Recipients define access.
-- There is no central authority.
-
-Implications:
-
-- No retroactive revocation.
-- No hidden access control.
-- Everything must be explicit.
+- Encryption is age, interoperable with the reference implementation. Do not change the age wire format.
+- Do not add OpenPGP or GPG dependencies.
 
 ---
 
 ## Coding Rules
 
-### TypeScript
+- TypeScript strict, `erasableSyntaxOnly`, `isolatedDeclarations`, exact `.ts` imports. No `any`.
+- Minimal code, no duplication, no clever code, no unnecessary abstractions.
+- Errors are `MsecretsError` with a `code` and an actionable message. Never swallow errors; expected
+  outcomes (authentication failure, not found) are explicit return values.
+- Runtime code must work on Node.js 20+ on Linux, macOS, and Windows. ML-KEM is optional (`supportsMlKem()`).
 
-- Strict typing REQUIRED.
-- No `any`.
-- Prefer inference but keep clarity.
-- Validate all external input.
+## Tooling
 
-### Tooling
+- Node.js 26 via `mise` (`mise exec node@26 -- …`); npm workspaces; tsdown builds; TypeScript 7 typechecks.
+- `npm run verify` runs format check, lint, typecheck, build, source tests, dist tests, and the packed install check.
+- Do not run lockfile updates or installs unless the task needs them; describe remaining validation steps instead.
 
-- Use `mise` only as the optional Node.js 24 shim provider in this repository.
-- Prefer commands like `mise exec node@24 -- ...` over assuming globally installed Node.js.
-- Use npm workspaces for install, script, test, and verification workflows.
-- If Node.js 24 is not available through `mise`, report that clearly before making assumptions about local availability.
-- When finishing implementation work, do not automatically run tests, smoke tests, lockfile generation, `npm install`, or similar validation chores unless they are explicitly part of the task or clearly necessary to complete it. Instead, describe the remaining developer-owned validation steps in the final response.
+## Testing
 
-### Style
-
-- Minimal code.
-- No duplication.
-- No unnecessary abstractions.
-- No clever code.
-
-### Errors
-
-- Always explicit and descriptive.
-- Never swallow errors.
-- Prefer early throws.
-
----
-
-## What Agents SHOULD do
-
-- Preserve v1 file-format compatibility.
-- Extend core workflows.
-- Improve validation and safety.
-- Move logic toward OpenPGP and away from GPG assumptions.
-- Strengthen the SDK/adapters runtime path.
-- Improve type safety.
-- Keep release validation current when behavior changes.
-- Update docs and tests with user-visible changes.
-
----
-
-## What Agents MUST NOT do
-
-- Add business logic to UI.
-- Modify anything under `packages/ui` unless the user explicitly asks for UI work.
-- Add nested `AGENTS.md` files unless a package has genuinely different local rules.
-- Hardcode environment-specific behavior.
-- Introduce hidden state.
-- Depend on local machine configuration.
-- Deepen GPG dependency.
-- Break file format compatibility without explicit instruction.
-- Weaken generated-package or release verification.
-
----
-
-## Known Technical Debt
-
-- GPG shell dependency remains for local key discovery.
-- `owners` duplicates actual OpenPGP recipients.
-- SDK/adapters contract is still settling.
-- SDK is not fully independent.
-- Adapter system is still minimal.
-
-Agents MAY improve these incrementally when the change preserves compatibility and keeps boundaries clean.
-
----
-
-## Preferred Future Direction
-
-1. OpenPGP remains the core crypto implementation.
-2. Stored public keys remain the encryption source of truth.
-3. SDK handles runtime decryption.
-4. Adapters provide private keys only.
----
-
-## Mental Model
-
-Think of msecrets as:
-
-> "Git for encrypted configuration"
-
-NOT:
-
-- a KMS
-- a secrets server
-- a policy engine
-
----
-
-## Testing Philosophy
-
-- Prefer real workflows over mocks.
-- Validate file transformations.
-- Ensure deterministic outputs.
-- Avoid environment-dependent tests.
-- Keep generated-package validation aligned with the public install path.
-
----
-
-## Final Rule
-
-If a change makes the system more deterministic, more portable, less dependent on GPG, more SDK-first, and still compatible with the v1 file contract, it is in scope.
-
-If not, reconsider.
+- Prefer real workflows: real files, real processes, real git; mocks only for I/O streams.
+- The C2SP age vectors (`packages/core/test/vectors`) must keep passing.
+- Every user-visible behavior has a test; every bug fix gets a regression test.
+- Tests must be deterministic and must not depend on the developer's keychain or config (use `MSECRETS_CONFIG_DIR`).

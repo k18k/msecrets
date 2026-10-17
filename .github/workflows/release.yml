@@ -1,30 +1,75 @@
 name: Release Packages
 
 on:
+  push:
+    branches: [master]
   workflow_dispatch:
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
-  release:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Publish to npm
+    needs: ci
     runs-on: ubuntu-latest
-
     permissions:
-      contents: read
+      contents: write
       id-token: write
-
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@v7
         with:
-          node-version: 24
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
           registry-url: https://registry.npmjs.org
-
       - run: npm ci
-
       - run: npm run build
+      - name: Publish new versions, tag, and release
+        run: npm run publish:new
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MSECRETS_PROVENANCE: ${{ github.event.repository.private == false }}
 
-      - run: npm run test
-
-      - run: npm publish --workspace @msecrets/ts-sdk --access public --provenance
-
-      - run: npm publish --workspace @msecrets/ui --access public --provenance
+  coverage-badge:
+    name: Update the coverage badge
+    needs: ci
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage
+      - name: Write the badge
+        run: |
+          node --input-type=module -e '
+          import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+          let found = 0, hit = 0;
+          for (const line of readFileSync("lcov.info", "utf8").split("\n")) {
+            if (line.startsWith("LF:")) found += Number(line.slice(3));
+            if (line.startsWith("LH:")) hit += Number(line.slice(3));
+          }
+          const pct = found ? (hit / found) * 100 : 0;
+          const color = pct >= 90 ? "brightgreen" : pct >= 80 ? "green" : pct >= 70 ? "yellowgreen" : pct >= 60 ? "yellow" : "red";
+          mkdirSync(".github/badges", { recursive: true });
+          writeFileSync(".github/badges/coverage.json", JSON.stringify({ schemaVersion: 1, label: "coverage", message: `${pct.toFixed(1)}%`, color }, null, 2) + "\n");
+          '
+      - name: Commit the badge
+        run: |
+          if git diff --quiet -- .github/badges/coverage.json; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/coverage.json
+          git commit -m "chore: update coverage badge"
+          git push
