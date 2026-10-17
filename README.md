@@ -1,7 +1,7 @@
 # msecrets
 
-[![CI](https://github.com/k18k/msecrets/actions/workflows/ci.yml/badge.svg)](https://github.com/k18k/msecrets/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k18k/msecrets/master/.github/badges/coverage.json)](https://github.com/k18k/msecrets/actions/workflows/ci.yml)
+[![CI and release](https://github.com/k18k/msecrets/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/k18k/msecrets/actions/workflows/release.yml)
+[![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k18k/msecrets/master/.github/badges/coverage.json)](https://github.com/k18k/msecrets/actions/workflows/release.yml)
 [![npm](https://img.shields.io/npm/v/@msecrets/ui?label=%40msecrets%2Fui)](https://www.npmjs.com/package/@msecrets/ui)
 [![npm](https://img.shields.io/npm/v/@msecrets/ts-sdk?label=%40msecrets%2Fts-sdk)](https://www.npmjs.com/package/@msecrets/ts-sdk)
 
