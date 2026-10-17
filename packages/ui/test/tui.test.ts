@@ -9,6 +9,7 @@ import { main } from "../src/cli.ts";
 import { Context } from "../src/context.ts";
 import type { InputStream, Io, OutputStream } from "../src/terminal.ts";
 import { TuiApp, fit } from "../src/tui/app.ts";
+import { createSymbols, supportsUnicode } from "../src/symbols.ts";
 import { decodeKeys } from "../src/tui/keys.ts";
 import { Output, type Workspace, workspace } from "./harness.ts";
 
@@ -33,7 +34,7 @@ async function setup(
     stdin: new PassThrough() as unknown as InputStream,
     stdout: new Output() as unknown as OutputStream,
     stderr: new Output() as unknown as OutputStream,
-    env: { MSECRETS_CONFIG_DIR: alice.config, NO_COLOR: "1" },
+    env: { MSECRETS_CONFIG_DIR: alice.config, NO_COLOR: "1", TERM: "xterm-256color" },
     cwd: ws.project,
   };
   const context = new Context(io, {});
@@ -302,7 +303,7 @@ describe("TUI", () => {
       stdin: stdin as unknown as InputStream,
       stdout: stdout as unknown as OutputStream,
       stderr: new Output() as unknown as OutputStream,
-      env: { MSECRETS_CONFIG_DIR: alice.config, NO_COLOR: "1" },
+      env: { MSECRETS_CONFIG_DIR: alice.config, NO_COLOR: "1", TERM: "xterm-256color" },
       cwd: ws.project,
     };
     const session = main([], io);
@@ -315,6 +316,15 @@ describe("TUI", () => {
 });
 
 describe("keys and layout", () => {
+  test("legacy Windows consoles get ASCII symbols", () => {
+    assert.equal(supportsUnicode({}, "win32"), false);
+    assert.equal(supportsUnicode({ WT_SESSION: "1" }, "win32"), true);
+    assert.equal(supportsUnicode({ TERM_PROGRAM: "vscode" }, "win32"), true);
+    assert.equal(supportsUnicode({}, "darwin"), true);
+    assert.equal(supportsUnicode({ TERM: "linux" }, "linux"), false);
+    assert.equal(Object.values(createSymbols(false).cell).join(""), "+~-x!.");
+  });
+
   test("decodes terminal input", () => {
     assert.deepEqual(decodeKeys(`a${UP}\u001bOB\u001b[3~\r\n\u0003é🔐\u001b[1;5C\u001b`), [
       { name: "char", char: "a" },

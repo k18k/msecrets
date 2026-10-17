@@ -15,6 +15,7 @@ import {
   resolveDocumentFile,
   updateDocumentFile,
 } from "../../core/src/index.ts";
+import { type Symbols, createSymbols, supportsUnicode } from "./symbols.ts";
 import { type Colors, type Io, ask, colorsEnabled, createColors } from "./terminal.ts";
 
 export type GlobalOptions = {
@@ -38,6 +39,7 @@ export class Context {
   readonly options: GlobalOptions;
   readonly out: Colors;
   readonly err: Colors;
+  readonly symbols: Symbols;
   #path: string | undefined;
   #identities: LoadedIdentity[] | undefined;
 
@@ -46,6 +48,7 @@ export class Context {
     this.options = options;
     this.out = createColors(colorsEnabled(io.stdout, io.env));
     this.err = createColors(colorsEnabled(io.stderr, io.env));
+    this.symbols = createSymbols(supportsUnicode(io.env));
   }
 
   print(text = ""): void {
@@ -62,7 +65,7 @@ export class Context {
   }
 
   success(text: string): void {
-    this.note(`${this.err.green("✓")} ${text}`);
+    this.note(`${this.err.green(this.symbols.check)} ${text}`);
   }
 
   get path(): string {

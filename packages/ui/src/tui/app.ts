@@ -31,13 +31,7 @@ import {
   unsetValue,
 } from "../../../core/src/index.ts";
 import type { Context } from "../context.ts";
-import {
-  CELL_DESCRIPTIONS,
-  type Symbols,
-  cellStyle,
-  createSymbols,
-  supportsUnicode,
-} from "../symbols.ts";
+import { CELL_DESCRIPTIONS, type Symbols, cellStyle } from "../symbols.ts";
 import { type Colors, padEnd, visibleLength } from "../terminal.ts";
 import { type Key, decodeKeys } from "./keys.ts";
 
@@ -144,7 +138,7 @@ export class TuiApp {
     this.identityProblem = identityProblem;
     this.write = write;
     this.c = context.out;
-    this.symbols = createSymbols(supportsUnicode(context.io.env));
+    this.symbols = context.symbols;
     this.document = context.document();
     this.report = inspect(this.document);
     if (identityProblem) {
@@ -779,7 +773,7 @@ export class TuiApp {
         const label = ` ${index + 1} ${view.title} `;
         return view.id === this.view ? c.inverse(label) : c.dim(label);
       }).join(" ") + (this.filter ? c.yellow(`   filter: ${this.filter}`) : ""),
-      c.dim("─".repeat(width)),
+      c.dim(this.symbols.line.repeat(width)),
     ];
 
     const health =
@@ -787,7 +781,7 @@ export class TuiApp {
         ? `${errors ? c.red(`${errors} error(s)`) : ""}${errors && warnings ? c.dim(" · ") : ""}${warnings ? c.yellow(`${warnings} warning(s)`) : ""}`
         : c.green(`${this.symbols.check} all values present, current, and signed`);
     const footer = [
-      c.dim("─".repeat(width)),
+      c.dim(this.symbols.line.repeat(width)),
       `${(["ok", "stale", "missing", "invalid"] as const).map((state) => `${cellStyle(c, state)(this.symbols.cell[state])} ${CELL_DESCRIPTIONS[state]}`).join("  ")}   ${health}`,
       c.dim(this.hints()),
       this.status

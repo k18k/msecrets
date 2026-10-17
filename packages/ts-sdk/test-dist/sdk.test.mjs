@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { createClient, injectEnv, isMsecretsError, load } from "../dist/index.mjs";
 
@@ -56,7 +56,10 @@ for (const [flag, entry] of [
       process.execPath,
       [
         flag,
-        join(here, "..", "dist", entry),
+        // --import takes a URL (absolute Windows paths are not valid specifiers); --require takes a path.
+        flag === "--import"
+          ? pathToFileURL(join(here, "..", "dist", entry)).href
+          : join(here, "..", "dist", entry),
         "-e",
         "console.log(process.env.DATABASE_URL + '|' + (process.env.MSECRETS_IDENTITY || 'scrubbed'))",
       ],

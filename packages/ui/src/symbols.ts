@@ -24,6 +24,7 @@ export type Symbols = {
   cross: string;
   arrow: string;
   bullet: string;
+  line: string;
 };
 
 export function createSymbols(unicode: boolean): Symbols {
@@ -34,6 +35,7 @@ export function createSymbols(unicode: boolean): Symbols {
         cross: "✗",
         arrow: "›",
         bullet: "•",
+        line: "─",
       }
     : {
         cell: { ok: "+", stale: "~", missing: "-", invalid: "x", unexpected: "!", absent: "." },
@@ -41,6 +43,7 @@ export function createSymbols(unicode: boolean): Symbols {
         cross: "x",
         arrow: ">",
         bullet: "*",
+        line: "-",
       };
 }
 

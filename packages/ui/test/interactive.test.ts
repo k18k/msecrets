@@ -235,9 +235,16 @@ describe(
     });
 
     test("without a working keychain, init falls back to a private file", async (t) => {
+      // An empty PATH: no keychain tool can run, and the real keychain is never touched.
+      const empty = tempDir(t);
+      const previous = process.env["PATH"];
+      process.env["PATH"] = empty;
+      t.after(() => {
+        process.env["PATH"] = previous;
+      });
       const ws = workspace(t);
       const alice = ws.person("alice");
-      const init = await alice.run(["init", "--name", "alice"], { env: { PATH: tempDir(t) } });
+      const init = await alice.run(["init", "--name", "alice"], { env: { PATH: empty } });
       ok(init);
       assert.match(init.stderr, /OS keychain unavailable/);
       const identityFile = join(alice.config, "identity.txt");

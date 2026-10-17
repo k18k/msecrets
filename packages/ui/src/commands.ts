@@ -59,7 +59,7 @@ import {
   storeIdentity,
 } from "./identity-setup.ts";
 import { runToCompletion, spawnCommand } from "./spawn.ts";
-import { CELL_DESCRIPTIONS, cellStyle, createSymbols, supportsUnicode } from "./symbols.ts";
+import { CELL_DESCRIPTIONS, cellStyle } from "./symbols.ts";
 import { ask, confirm, readAll, table } from "./terminal.ts";
 
 export type OptionSpec = {
@@ -437,8 +437,7 @@ const identityUse: Command = {
 // Inspection
 
 function cellGlyph(context: Context, state: CellState): string {
-  const symbols = createSymbols(supportsUnicode(context.io.env));
-  return cellStyle(context.out, state)(symbols.cell[state]);
+  return cellStyle(context.out, state)(context.symbols.cell[state]);
 }
 
 function printFindings(context: Context, document: SecretsDocument): boolean {
@@ -546,12 +545,12 @@ const check: Command = {
     const counts = `${Object.keys(document.secrets).length} secret(s) × ${Object.keys(document.environments).length} environment(s)`;
     if (ok) {
       context.print(
-        `${context.out.green("✓")} ${displayPath(context, context.path)}: ${counts}; every value is present, current, and signed`,
+        `${context.out.green(context.symbols.check)} ${displayPath(context, context.path)}: ${counts}; every value is present, current, and signed`,
       );
       return 0;
     }
     context.print(
-      `${context.out.red("✗")} ${displayPath(context, context.path)}: ${counts}; fix the errors above`,
+      `${context.out.red(context.symbols.cross)} ${displayPath(context, context.path)}: ${counts}; fix the errors above`,
     );
     return 1;
   },

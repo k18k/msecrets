@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, test } from "node:test";
 
 import { tempDir } from "../../core/test/helpers.ts";
@@ -15,6 +16,8 @@ import {
 import fixture from "./fixtures/app.ms.json" with { type: "json" };
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
+// --import takes a URL; absolute Windows paths are not valid specifiers.
+const REGISTER = pathToFileURL(join(import.meta.dirname, "..", "src", "register.ts")).href;
 const DEVELOPER = readFileSync(join(FIXTURES, "developer.identity.txt"), "utf8");
 const PRODUCTION = readFileSync(join(FIXTURES, "production.identity.txt"), "utf8");
 const developer = DEVELOPER.split("\n").find((line) => line.startsWith("AGE-")) ?? "";
@@ -177,7 +180,7 @@ describe("injectEnv and register", () => {
       process.execPath,
       [
         "--import",
-        join(import.meta.dirname, "..", "src", "register.ts"),
+        REGISTER,
         "-e",
         "console.log(JSON.stringify([process.env.DATABASE_URL, process.env.SENTRY_DSN, process.env.MSECRETS_IDENTITY ?? null]))",
       ],
@@ -201,20 +204,16 @@ describe("injectEnv and register", () => {
   test("register fails startup with a clear message", () => {
     assert.throws(
       () =>
-        execFileSync(
-          process.execPath,
-          ["--import", join(import.meta.dirname, "..", "src", "register.ts"), "-e", "0"],
-          {
-            encoding: "utf8",
-            stdio: "pipe",
-            env: {
-              ...process.env,
-              MSECRETS_FILE: join(FIXTURES, "app.ms.json"),
-              MSECRETS_ENV: "production",
-              MSECRETS_IDENTITY: developer.replace(/.$/, ""),
-            },
+        execFileSync(process.execPath, ["--import", REGISTER, "-e", "0"], {
+          encoding: "utf8",
+          stdio: "pipe",
+          env: {
+            ...process.env,
+            MSECRETS_FILE: join(FIXTURES, "app.ms.json"),
+            MSECRETS_ENV: "production",
+            MSECRETS_IDENTITY: developer.replace(/.$/, ""),
           },
-        ),
+        }),
       /env MSECRETS_IDENTITY/,
     );
   });
