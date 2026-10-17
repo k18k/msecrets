@@ -185,7 +185,6 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: node deploy.ts # createClient(file) reads both variables
-      - run: npx msecrets run -- ./deploy.sh # other tools get the secrets as environment variables
 ```
 
 - One key per target and environment (`github-actions-staging` with `--env staging`, …).

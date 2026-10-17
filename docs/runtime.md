@@ -125,8 +125,7 @@ jobs:
         with:
           node-version: 24
       - run: npm ci
-      - run: node deploy.ts # createClient(file) reads the key and the environment from the variables above
-      - run: npx msecrets run -- ./deploy.sh # or any other tool, with the secrets as environment variables
+      - run: node deploy.ts # createClient(file) reads MSECRETS_IDENTITY and MSECRETS_ENV
 ```
 {% endraw %}
 
