@@ -6,10 +6,24 @@ import { MsecretsError } from "./errors.ts";
 
 const CMD_META = /([()\][%!^"`<>&|;, *?])/g;
 
+/** Quotes an argument for CreateProcess: backslashes double only before a quote or the end. */
+function quoteWindowsArgument(argument: string): string {
+  let quoted = '"';
+  let backslashes = 0;
+  for (const char of argument) {
+    if (char === "\\") {
+      backslashes++;
+      continue;
+    }
+    quoted += "\\".repeat(char === '"' ? backslashes * 2 + 1 : backslashes) + char;
+    backslashes = 0;
+  }
+  return `${quoted}${"\\".repeat(backslashes * 2)}"`;
+}
+
 /** Quotes an argument for CreateProcess, then escapes cmd.exe metacharacters. */
 function escapeWindowsArgument(argument: string, doubleEscape: boolean): string {
-  let quoted = argument.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, "$1$1");
-  quoted = `"${quoted}"`.replace(CMD_META, "^$1");
+  const quoted = quoteWindowsArgument(argument).replace(CMD_META, "^$1");
   // Batch files parse their arguments a second time.
   return doubleEscape ? quoted.replace(CMD_META, "^$1") : quoted;
 }

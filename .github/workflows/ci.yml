@@ -5,6 +5,9 @@ on:
   push:
     branches-ignore: [master]
   workflow_call:
+  # Weekly: deeper fuzzing with a fresh seed (printed in the test names, to reproduce).
+  schedule:
+    - cron: "17 4 * * 1"
 
 permissions:
   contents: read
@@ -85,6 +88,8 @@ jobs:
         run: npm test
         env:
           MSECRETS_TEST_KEYCHAIN: ${{ runner.os != 'Linux' && '1' || '' }}
+          MSECRETS_FUZZ_CASES: ${{ github.event_name == 'schedule' && '20000' || '' }}
+          MSECRETS_FUZZ_SEED: ${{ github.event_name == 'schedule' && github.run_id || '' }}
       - name: Tests of the built packages
         run: npm run test:dist
 

@@ -1237,6 +1237,18 @@ function git(context: Context, args: string[]): string {
   }).trim();
 }
 
+/** Reads a text file, or returns undefined when it does not exist (no separate existence check to race with). */
+function readIfExists(path: string): string | undefined {
+  try {
+    return readFileSync(path, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return undefined;
+    }
+    throw error;
+  }
+}
+
 /** How git should invoke this CLI: the same Node.js binary and script that runs now. */
 function selfCommand(): string {
   const script = process.argv[1] ? realpathSync(process.argv[1]) : "";
@@ -1251,9 +1263,7 @@ const gitSetup: Command = {
     const root = git(context, ["rev-parse", "--show-toplevel"]);
     const attributes = join(root, ".gitattributes");
     const line = `${DEFAULT_FILENAME} diff=msecrets merge=msecrets`;
-    const current = statSync(attributes, { throwIfNoEntry: false })
-      ? readFileSync(attributes, "utf8")
-      : "";
+    const current = readIfExists(attributes) ?? "";
     if (!current.split(/\r?\n/).includes(line)) {
       appendFileSync(attributes, `${current && !current.endsWith("\n") ? "\n" : ""}${line}\n`);
     }
@@ -1350,9 +1360,7 @@ const skill: Command = {
       : projectRoot(context);
     for (const directory of SKILL_DIRECTORIES) {
       const path = join(root, directory, "msecrets", "SKILL.md");
-      const current = statSync(path, { throwIfNoEntry: false })
-        ? readFileSync(path, "utf8")
-        : undefined;
+      const current = readIfExists(path);
       if (current === content) {
         context.note(`Up to date: ${displayPath(context, path)}`);
         continue;

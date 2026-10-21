@@ -36,6 +36,9 @@ const BODY_LINE = /^[A-Za-z0-9+/]*$/;
 const CHUNK_SIZE = 64 * 1024;
 const TAG_SIZE = 16;
 const FILE_KEY_SIZE = 16;
+/** Bounds the work an untrusted file can cause; msecrets writes one stanza per recipient. */
+export const MAX_STANZAS = 1024;
+const MAX_HEADER_SIZE = 1024 * 1024;
 const ARMOR_BEGIN = "-----BEGIN AGE ENCRYPTED FILE-----";
 const ARMOR_END = "-----END AGE ENCRYPTED FILE-----";
 
@@ -72,6 +75,9 @@ function parseHeader(data: Buffer): ParsedHeader {
     const end = data.indexOf(0x0a, offset);
     if (end < 0) {
       throw headerError("unexpected end of header");
+    }
+    if (end >= MAX_HEADER_SIZE) {
+      throw headerError("larger than 1 MiB");
     }
     const line = data.subarray(offset, end).toString("latin1");
     offset = end + 1;
@@ -110,6 +116,9 @@ function parseHeader(data: Buffer): ParsedHeader {
 
     if (!line.startsWith("-> ")) {
       throw headerError("expected a recipient stanza or the header MAC");
+    }
+    if (stanzas.length === MAX_STANZAS) {
+      throw headerError(`more than ${MAX_STANZAS} recipient stanzas`);
     }
 
     const args = line.slice(3).split(" ");
@@ -204,6 +213,9 @@ export function encryptAge(plaintext: Uint8Array, recipients: readonly AgeRecipi
 
   const fileKey = randomBytes(FILE_KEY_SIZE);
   const stanzas = recipients.flatMap((recipient) => recipient.wrap(fileKey));
+  if (stanzas.length > MAX_STANZAS) {
+    throw new MsecretsError("USAGE", `An age file can have at most ${MAX_STANZAS} recipients`);
+  }
   if (stanzas.some((stanza) => stanza.args[0] === "scrypt") && stanzas.length > 1) {
     throw new MsecretsError(
       "USAGE",
@@ -275,9 +287,21 @@ function armorError(message: string): MsecretsError {
   return new MsecretsError("AGE_ARMOR", `Invalid age armor: ${message}`);
 }
 
+/** Removes leading and trailing spaces, tabs, and line breaks (in linear time, unlike a `\s+$` regex). */
+function trimArmor(text: string): string {
+  let start = 0;
+  let end = text.length;
+  while (start < end && " \t\r\n".includes(text.charAt(start))) {
+    start++;
+  }
+  while (end > start && " \t\r\n".includes(text.charAt(end - 1))) {
+    end--;
+  }
+  return text.slice(start, end);
+}
+
 export function dearmor(text: string): Buffer {
-  const lines = text
-    .replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "")
+  const lines = trimArmor(text)
     .split("\n")
     .map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
 

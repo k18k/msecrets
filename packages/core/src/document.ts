@@ -4,6 +4,7 @@
  * Structural validation lives here. Cryptographic state (signatures,
  * recipient drift, completeness) is evaluated by `status.ts`.
  */
+import { MAX_STANZAS } from "./crypto/age.ts";
 import { randomBytes } from "./crypto/primitives.ts";
 import { MsecretsError } from "./errors.ts";
 import { parsePublicKey } from "./keys.ts";
@@ -385,14 +386,16 @@ export function validateDocument(input: unknown): {
       optional: [],
     });
     if (entry) {
-      document.environments[name] = {
-        recipients: v.nameList(
-          entry["recipients"],
-          `$.environments.${name}.recipients`,
-          recipientNames,
-          "recipient",
-        ),
-      };
+      const recipients = v.nameList(
+        entry["recipients"],
+        `$.environments.${name}.recipients`,
+        recipientNames,
+        "recipient",
+      );
+      if (recipients.length > MAX_STANZAS) {
+        v.issue(`$.environments.${name}.recipients`, `At most ${MAX_STANZAS} recipients`);
+      }
+      document.environments[name] = { recipients };
     }
   }
 
@@ -423,7 +426,13 @@ export function parseDocument(input: unknown, source = "secrets file"): SecretsD
   return document;
 }
 
+/** Bounds parsing and signature checks of untrusted files (GitHub rejects files over 100 MiB). */
+const MAX_FILE_SIZE = 64 * 1024 * 1024;
+
 export function parseDocumentText(text: string, source = "secrets file"): SecretsDocument {
+  if (text.length > MAX_FILE_SIZE) {
+    throw new MsecretsError("INVALID_FILE", `Invalid ${source}: larger than 64 MiB`);
+  }
   let json: unknown;
   try {
     json = JSON.parse(text);
