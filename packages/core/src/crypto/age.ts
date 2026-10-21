@@ -287,9 +287,21 @@ function armorError(message: string): MsecretsError {
   return new MsecretsError("AGE_ARMOR", `Invalid age armor: ${message}`);
 }
 
+/** Removes leading and trailing spaces, tabs, and line breaks (in linear time, unlike a `\s+$` regex). */
+function trimArmor(text: string): string {
+  let start = 0;
+  let end = text.length;
+  while (start < end && " \t\r\n".includes(text.charAt(start))) {
+    start++;
+  }
+  while (end > start && " \t\r\n".includes(text.charAt(end - 1))) {
+    end--;
+  }
+  return text.slice(start, end);
+}
+
 export function dearmor(text: string): Buffer {
-  const lines = text
-    .replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, "")
+  const lines = trimArmor(text)
     .split("\n")
     .map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
 

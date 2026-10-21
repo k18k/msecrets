@@ -1,6 +1,6 @@
 {
   "name": "msecrets",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "Teaches Claude to read msecrets secrets with @msecrets/ts-sdk and to manage them without ever seeing a value",
   "author": {
     "name": "Krystian Mikołajczyk"

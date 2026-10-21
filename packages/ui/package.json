@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/ui",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "msecrets CLI and terminal UI: encrypted secrets that live in your repository. Zero dependencies.",
   "keywords": [
     "age",

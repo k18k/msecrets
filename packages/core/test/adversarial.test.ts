@@ -8,7 +8,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 
-import { type AgeRecipient, MAX_STANZAS, decryptAge, encryptAge } from "../src/crypto/age.ts";
+import {
+  type AgeRecipient,
+  MAX_STANZAS,
+  decryptAge,
+  dearmor,
+  encryptAge,
+} from "../src/crypto/age.ts";
 import { fromBase64, toBase64 } from "../src/crypto/encoding.ts";
 import { supportsMlKem } from "../src/crypto/primitives.ts";
 import {
@@ -22,6 +28,7 @@ import {
   parseDocumentText,
   parseIdentity,
   parsePublicKey,
+  planCommand,
   readOnlyPublicKey,
   revealValue,
   serializeDocument,
@@ -144,6 +151,29 @@ describe("age under hostile input", () => {
     assert.throws(
       () => decryptAge(header(`-> x\n${longBody}`), [identity.ageIdentity]),
       /larger than 1 MiB/,
+    );
+  });
+});
+
+/** Milliseconds an action takes; it may throw an MsecretsError. */
+const elapsed = (action: () => unknown) => {
+  const start = performance.now();
+  attempt(action);
+  return performance.now() - start;
+};
+
+describe("pathological input runs in linear time", () => {
+  test("whitespace runs in armor and backslash runs in Windows arguments", () => {
+    // Both used regexes that were quadratic on such input (CodeQL js/polynomial-redos).
+    assert.ok(elapsed(() => dearmor(`x${" \t".repeat(200_000)}y`)) < 1000);
+    assert.ok(
+      elapsed(() =>
+        planCommand(["tool.cmd", `${"\\".repeat(200_000)}x`], {
+          env: {},
+          cwd: "/",
+          platform: "win32",
+        }),
+      ) < 1000,
     );
   });
 });
