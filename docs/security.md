@@ -44,6 +44,41 @@ The file is plain text, and so is everything msecrets prints from it. Descriptio
 characters, error messages escape names, and revealed values are sanitized in the terminal UI, so a pull request
 cannot hide lines from reviewers or write to their clipboard with terminal escape sequences.
 
+## Hostile pull requests
+
+Treat the whole `msecrets.json` of a pull request as attacker-controlled, including who may read and sign. The
+file cannot prove who a recipient really is; trust starts with the reviewed version on your default branch. Each
+row is a [regression test](https://github.com/k18k/msecrets/blob/master/packages/ui/test/hostile-changes.test.ts):
+
+| The pull request…                                   | Signatures and encryption                                                                                   | `git diff` shows                                   |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| adds its author as a recipient                      | Reveal nothing; values become _needs sync_ and `msecrets check` fails. A member's `sync` would grant access. | the new recipient and the changed access list      |
+| replaces a member's key with its own                | Every value that member signed becomes invalid. New values signed with the replaced key verify.            | the member's key fingerprint changing              |
+| restores an older signed value                      | The old value verifies (rollback).                                                                          | the value's signature line changing                |
+| moves or edits values, or claims another signer     | Rejected: the value is invalid and never decrypted.                                                         | the changed values                                 |
+| writes with a read-only machine key                 | Impossible: machine keys cannot sign.                                                                       | nothing to review                                  |
+
+So review every change to recipients, access, and values, and never run `msecrets sync` or `grant` on a pull
+request you have not reviewed.
+
+## Hostile input
+
+Parsers reject everything that is not canonical, and input is bounded: an age header has at most 1024 stanzas and
+1 MiB, an environment at most 1024 recipients, and a secrets file at most 64 MiB. Signatures are checked before any
+value is decrypted, so a forged ciphertext never reaches the age parser.
+
+- **Differential fuzzing:** every CI run generates valid age files (every recipient type, unknown stanzas, chunk
+  boundaries, armor) and mutations of them, and checks that msecrets accepts and rejects exactly what the
+  reference `age` does, with the same plaintext. A weekly run covers 20,000 cases per platform with a fresh seed.
+- **Properties on every platform:** every single-bit flip and truncation of a file is rejected, mutations never
+  yield other plaintext, random input only ever fails with a clean error, base64 accepts exactly the canonical
+  encodings, a single changed character in a key is rejected, and edited secrets files never reveal a value they
+  do not authenticate.
+- The complete [C2SP age test vectors](https://github.com/C2SP/CCTV/tree/main/age) and round-trips with `age` in
+  both directions.
+
+These are tests, not an audit: the implementation has not had an independent security review yet.
+
 ## What you must still do
 
 - **Review changes to recipients and access.** Anyone who can push can add their own key to an environment's

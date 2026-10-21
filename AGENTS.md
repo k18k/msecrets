@@ -79,5 +79,7 @@ Packages import core through relative paths; tsdown bundles it. Published packag
 
 - Prefer real workflows: real files, real processes, real git; mocks only for I/O streams.
 - The C2SP age vectors (`packages/core/test/vectors`) must keep passing.
+- Hostile input is tested by `age-fuzz.test.ts` (differential against the reference `age`) and
+  `adversarial.test.ts`; a failure prints its seed: rerun with `MSECRETS_FUZZ_SEED`, go deeper with `MSECRETS_FUZZ_CASES`.
 - Every user-visible behavior has a test; every bug fix gets a regression test.
 - Tests must be deterministic and must not depend on the developer's keychain or config (use `MSECRETS_CONFIG_DIR`).
