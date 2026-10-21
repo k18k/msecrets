@@ -133,7 +133,11 @@ describe("age differential fuzzing", { skip: hasAge ? false : "age binary not av
           actual.ok !== expected.ok ||
           (actual.ok && !actual.plaintext?.equals(expected.plaintext ?? Buffer.alloc(0)))
         ) {
-          const saved = join(tmpdir(), `msecrets-fuzz-${FUZZ_SEED}-${index}.age`);
+          // A private directory: a predictable name in the shared temp dir could be a planted symlink.
+          const saved = join(
+            mkdtempSync(join(tmpdir(), "msecrets-fuzz-failure-")),
+            `${FUZZ_SEED}-${index}.age`,
+          );
           writeFileSync(saved, file);
           assert.fail(
             `case ${index} (${applied.join(", ") || "unmutated"}): age ${expected.ok ? "accepts" : "rejects"}, msecrets ${actual.ok ? "accepts" : "rejects"}${actual.ok && expected.ok ? " with different plaintext" : ""}. File: ${saved}`,
