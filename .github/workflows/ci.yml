@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches-ignore: [master]
+    branches-ignore: [master, cli, "cli-*", ts-sdk]
   workflow_call:
   # Weekly: deeper fuzzing with a fresh seed (printed in the test names, to reproduce).
   schedule:
@@ -21,33 +21,31 @@ env:
 
 jobs:
   check:
-    name: Format, lint, typecheck, build, package
+    name: Format, vet, build, install
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - uses: actions/setup-node@v7
         with:
           node-version: 26
-          cache: npm
-      - run: npm ci
-      - run: npm run format:check
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm run verify:packages
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - run: go vet ./...
+      - name: Build every platform and the SDK
+        run: scripts/build-dist.sh
+      - name: Install from git branches (cli, cli-<os>-<arch>, ts-sdk)
+        run: scripts/test-install.sh
       - name: Coverage
-        run: npm run coverage
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dist
-          path: |
-            packages/ts-sdk/dist
-            packages/ui/dist
-          if-no-files-found: error
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
       - uses: actions/upload-artifact@v7
         with:
           name: coverage
-          path: lcov.info
+          path: coverage.out
           if-no-files-found: error
 
   test:
@@ -57,15 +55,19 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        node: [22, 24, 26]
+        node: [20, 26]
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-          cache: npm
       - name: Install the reference age implementation (interoperability tests)
-        shell: bash
         run: |
           case "${{ runner.os }}-${{ runner.arch }}" in
             Linux-X64) asset="linux-amd64.tar.gz" ;;
@@ -82,32 +84,13 @@ jobs:
           echo "MSECRETS_AGE_BIN=$RUNNER_TEMP/age-dist/age/age$ext" >> "$GITHUB_ENV"
           echo "MSECRETS_AGE_KEYGEN_BIN=$RUNNER_TEMP/age-dist/age/age-keygen$ext" >> "$GITHUB_ENV"
           "$RUNNER_TEMP/age-dist/age/age$ext" --version
-      - run: npm ci
-      - run: npm run build
-      - name: Tests
-        run: npm test
+      - name: Go tests
+        run: go test ./...
         env:
           MSECRETS_TEST_KEYCHAIN: ${{ runner.os != 'Linux' && '1' || '' }}
           MSECRETS_FUZZ_CASES: ${{ github.event_name == 'schedule' && '20000' || '' }}
           MSECRETS_FUZZ_SEED: ${{ github.event_name == 'schedule' && github.run_id || '' }}
-      - name: Tests of the built packages
-        run: npm run test:dist
-
-  oldest-node:
-    name: Built packages on Node.js 20 (${{ matrix.os }})
-    needs: check
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 20
-      - uses: actions/download-artifact@v8
-        with:
-          name: dist
-          path: packages
-      - run: node --test --test-reporter=spec --test-timeout=120000 packages/ts-sdk/test-dist packages/ui/test-dist
+      - name: SDK tests (WebAssembly)
+        run: |
+          MSECRETS_PLATFORMS= scripts/build-dist.sh
+          node --test --test-timeout=120000 sdk/test/

@@ -1,0 +1,19 @@
+{
+  "name": "@msecrets/cli",
+  "version": "0.0.0",
+  "description": "msecrets CLI and terminal UI: encrypted secrets that live in your repository.",
+  "homepage": "https://k18k.github.io/msecrets/",
+  "bugs": "https://github.com/k18k/msecrets/issues",
+  "license": "MIT",
+  "author": "Krystian Mikołajczyk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k18k/msecrets.git"
+  },
+  "bin": {
+    "msecrets": "bin/msecrets.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

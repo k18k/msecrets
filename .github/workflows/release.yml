@@ -1,5 +1,9 @@
-name: Release Packages
+name: Release
 
+# A push to master with a new VERSION builds every platform and publishes the git branches
+# that npm installs from:
+#   npm install -g --allow-git=all github:k18k/msecrets#cli
+#   npm install --allow-git=root github:k18k/msecrets#ts-sdk
 on:
   push:
     branches: [master]
@@ -16,28 +20,46 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
-  publish:
-    name: Publish to npm
+  release:
+    name: Publish the cli, cli-<os>-<arch> and ts-sdk branches
     needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
     steps:
       - uses: actions/checkout@v7
+      - name: Is this version new?
+        id: version
+        run: |
+          version=$(cat VERSION)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null; then
+            echo "v$version is already released"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-go@v6
+        if: steps.version.outputs.new == 'true'
         with:
-          fetch-depth: 0
+          go-version-file: go.mod
       - uses: actions/setup-node@v7
+        if: steps.version.outputs.new == 'true'
         with:
           node-version: 26
-          registry-url: https://registry.npmjs.org
-      - run: npm ci
-      - run: npm run build
-      - name: Publish new versions, tag, and release
-        run: npm run publish:new
+      - name: Build and publish
+        if: steps.version.outputs.new == 'true'
         env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
           GH_TOKEN: ${{ github.token }}
-          MSECRETS_PROVENANCE: ${{ github.event.repository.private == false }}
+        run: |
+          scripts/build-dist.sh
+          scripts/publish-branches.sh "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" github:k18k/msecrets
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+          gh release create "v${{ steps.version.outputs.version }}" --verify-tag --generate-notes \
+            --notes "Install: \`npm install -g --allow-git=all github:k18k/msecrets#cli-v${{ steps.version.outputs.version }}\`"
 
   coverage-badge:
     name: Update the coverage badge
@@ -48,23 +70,18 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - uses: actions/download-artifact@v8
         with:
           name: coverage
       - name: Write the badge
         run: |
-          node --input-type=module -e '
-          import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-          let found = 0, hit = 0;
-          for (const line of readFileSync("lcov.info", "utf8").split("\n")) {
-            if (line.startsWith("LF:")) found += Number(line.slice(3));
-            if (line.startsWith("LH:")) hit += Number(line.slice(3));
-          }
-          const pct = found ? (hit / found) * 100 : 0;
-          const color = pct >= 90 ? "brightgreen" : pct >= 80 ? "green" : pct >= 70 ? "yellowgreen" : pct >= 60 ? "yellow" : "red";
-          mkdirSync(".github/badges", { recursive: true });
-          writeFileSync(".github/badges/coverage.json", JSON.stringify({ schemaVersion: 1, label: "coverage", message: `${pct.toFixed(1)}%`, color }, null, 2) + "\n");
-          '
+          pct=$(go tool cover -func=coverage.out | awk '/^total:/ { sub("%", "", $3); print $3 }')
+          color=$(awk -v p="$pct" 'BEGIN { print p >= 90 ? "brightgreen" : p >= 80 ? "green" : p >= 70 ? "yellowgreen" : p >= 60 ? "yellow" : "red" }')
+          mkdir -p .github/badges
+          printf '{\n  "schemaVersion": 1,\n  "label": "coverage",\n  "message": "%s%%",\n  "color": "%s"\n}\n' "$pct" "$color" > .github/badges/coverage.json
       - name: Commit the badge
         run: |
           if git diff --quiet -- .github/badges/coverage.json; then exit 0; fi
