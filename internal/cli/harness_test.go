@@ -183,6 +183,9 @@ func (p *person) environ(extra map[string]string) []string {
 		"GIT_CONFIG_NOSYSTEM": "1",
 		"GIT_CONFIG_GLOBAL":   filepath.Join(p.ws.home, ".gitconfig"),
 	}
+	if testing.CoverMode() != "" {
+		env["GOCOVERDIR"] = p.ws.home // the test binary stands in for secret-tool; quiet its coverage warning
+	}
 	for key, value := range extra {
 		env[key] = value
 	}

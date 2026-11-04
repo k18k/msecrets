@@ -369,13 +369,14 @@ func TestIdentityUseStoresAbsolutePaths(t *testing.T) {
 	printed := erin.run(t, []string{"identity", "new", "--store", "print"})
 	writeFile(t, filepath.Join(ws.project, "erin.key"), identityFrom(printed.stdout)+"\n")
 	ok(t, erin.run(t, []string{"identity", "use", "file:erin.key"}))
-	project, err := filepath.EvalSymlinks(ws.project) // the working directory, as the OS reports it (/private/var on macOS)
-	if err != nil {
-		t.Fatal(err)
+	var config struct{ Identities []string }
+	if err := json.Unmarshal([]byte(readFile(t, filepath.Join(erin.config, "config.json"))), &config); err != nil || len(config.Identities) != 1 {
+		t.Fatal(config, err)
 	}
-	want := "{\n  \"identities\": [\n    \"file:" + strings.ReplaceAll(filepath.Join(project, "erin.key"), `\`, `\\`) + "\"\n  ]\n}\n"
-	if got := readFile(t, filepath.Join(erin.config, "config.json")); got != want {
-		t.Fatalf("%q", got)
+	stored, isFile := strings.CutPrefix(config.Identities[0], "file:")
+	// The same file, however the OS spells the directory (/private/var on macOS, RUNNER~1 on Windows).
+	if storedInfo, err := os.Stat(stored); !isFile || !filepath.IsAbs(stored) || err != nil || !os.SameFile(storedInfo, must[os.FileInfo](t)(os.Stat(filepath.Join(ws.project, "erin.key")))) {
+		t.Fatalf("%q", config.Identities[0])
 	}
 	nested := filepath.Join(ws.project, "src")
 	if err := os.Mkdir(nested, 0o755); err != nil {
