@@ -7,4 +7,4 @@ lead: Since version 4, msecrets has a terminal UI instead of a browser dashboard
 permalink: /ui/
 ---
 
-Run `npx msecrets` in a terminal. See [CLI & terminal UI]({{ '/cli/' | relative_url }}).
+Run `msecrets` in a terminal. See [CLI & terminal UI]({{ '/cli/' | relative_url }}).

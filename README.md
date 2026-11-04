@@ -2,8 +2,6 @@
 
 [![CI and release](https://github.com/k18k/msecrets/actions/workflows/release.yml/badge.svg?branch=master)](https://github.com/k18k/msecrets/actions/workflows/release.yml)
 [![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/k18k/msecrets/master/.github/badges/coverage.json)](https://github.com/k18k/msecrets/actions/workflows/release.yml)
-[![npm](https://img.shields.io/npm/v/@msecrets/ui?label=%40msecrets%2Fui)](https://www.npmjs.com/package/@msecrets/ui)
-[![npm](https://img.shields.io/npm/v/@msecrets/ts-sdk?label=%40msecrets%2Fts-sdk)](https://www.npmjs.com/package/@msecrets/ts-sdk)
 
 Encrypted secrets that live in your repository.
 
@@ -12,17 +10,17 @@ machines of its environment and signed by whoever wrote it. There is no server, 
 and no dependencies.
 
 ```bash
-npm install --save-dev @msecrets/ui
-npx msecrets init                      # msecrets.json + your key (OS keychain when available)
-npx msecrets set DATABASE_URL          # prompts for the value
-npx msecrets                           # terminal UI: every secret in every environment
-npx msecrets run -- npm start          # secrets as environment variables, for any language
+npm install -g --allow-git=all github:k18k/msecrets#cli
+msecrets init                      # msecrets.json + your key (OS keychain when available)
+msecrets set DATABASE_URL          # prompts for the value
+msecrets                           # terminal UI: every secret in every environment
+msecrets run -- npm start          # secrets as environment variables, for any language
 ```
 
 In TypeScript or JavaScript, import the file and get your secrets as a typed object:
 
 ```bash
-npm install @msecrets/ts-sdk
+npm install --allow-git=root github:k18k/msecrets#ts-sdk
 ```
 
 ```ts
@@ -43,7 +41,7 @@ through `injectEnv(file)`. See the [runtime docs](https://k18k.github.io/msecret
 ### CI and deployment
 
 ```bash
-npx msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
+msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
 ```
 
 A read-only key for the workflow goes straight into a GitHub secret. The job sets `MSECRETS_IDENTITY` from it and
@@ -53,7 +51,7 @@ way: [CI and containers](https://k18k.github.io/msecrets/runtime/#containers-and
 ### AI coding agents
 
 ```bash
-npx msecrets skill    # teaches Claude Code, Codex, Cursor, Copilot, Gemini CLI, … to use msecrets
+msecrets skill    # teaches Claude Code, Codex, Cursor, Copilot, Gemini CLI, … to use msecrets
 ```
 
 Agents learn to use the typed SDK and to manage secrets without ever seeing a value: they ask you to run
@@ -73,35 +71,35 @@ See [AI agents](https://k18k.github.io/msecrets/ai/).
 - **Post-quantum ready:** optional ML-KEM-768 + X25519 keys for secrets that stay in git history forever.
 - **Standard and portable:** values are age files; `base64 -d | age -d` decrypts them without msecrets.
 
-## Packages
+## Install
 
-| Package                               |                                                                                       |
-| ------------------------------------- | ------------------------------------------------------------------------------------- |
-| [`@msecrets/ui`](packages/ui)         | The `msecrets` CLI and terminal UI.                                                   |
-| [`@msecrets/ts-sdk`](packages/ts-sdk) | Runtime SDK: `createClient(file)` returns your typed secrets; `injectEnv(file)`.      |
-| `packages/core`                       | Private: age, keys, the file format, operations, identity sources. Bundled into both. |
+npm 12 installs git dependencies only when allowed, hence `--allow-git`. The CLI needs `all`: `cli` pulls the
+prebuilt binary for your platform from the `cli-<os>-<arch>` branch (Linux, macOS, Windows; x64 and arm64). Pin a
+version with the tag, e.g. `github:k18k/msecrets#cli-v4.1.0`.
 
-Both packages have no dependencies and run on Node.js 20 or newer on Linux, macOS, and Windows.
+| Branch                                       |                                                                                  |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| `cli` (`@msecrets/cli`)                      | The `msecrets` CLI and terminal UI: a Go binary, behind a small Node.js shim.    |
+| `ts-sdk` (`@msecrets/ts-sdk`)                | Runtime SDK: `createClient(file)` returns your typed secrets; `injectEnv(file)`. |
+
+Both have no npm dependencies. The SDK is the Go core compiled to WebAssembly and runs on Node.js 20 or newer.
 
 ## Development
 
-Node.js 26 through [mise](https://mise.jdx.dev) (`mise install`), npm workspaces.
+Go (version in `go.mod`) and Node.js 26, e.g. through [mise](https://mise.jdx.dev) (`mise install`).
 
 ```bash
-npm install
-npm run build          # tsdown: ESM + CJS + types for the SDK, a single-file CLI
-npm test               # TypeScript tests from source (node:test)
-npm run test:dist      # the built packages, also run on Node.js 20 in CI
-npm run verify         # format, lint, typecheck, build, all tests, and the packed install path
+go test ./...                                              # core, CLI, terminal UI
+MSECRETS_PLATFORMS= scripts/build-dist.sh && node --test sdk/test/   # the WebAssembly SDK
+scripts/build-dist.sh && scripts/test-install.sh           # every platform; npm install from git branches
 ```
 
-The [age interoperability tests](packages/core/test/age-interop.test.ts) run when `age` is on `PATH`
-(`MSECRETS_AGE_BIN`). OS keychain round-trips run with `MSECRETS_TEST_KEYCHAIN=1`.
+OS keychain round-trips run with `MSECRETS_TEST_KEYCHAIN=1`.
 
 ## Releases
 
-Merging to `master` runs CI on Linux, macOS, and Windows with every supported Node.js version, then publishes each
-package whose version is not on npm yet (with provenance) and tags the release.
+A push to `master` runs CI on Linux, macOS, and Windows with Node.js 20 and 26. When `VERSION` is new, it builds
+every platform, commits the packages to the `cli`, `cli-<os>-<arch>`, and `ts-sdk` branches, and tags the release.
 
 ## License
 

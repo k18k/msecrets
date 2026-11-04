@@ -1,10 +1,7 @@
 node_modules
 dist
 *.tgz
-coverage
-lcov.info
-.turbo
-*.tsbuildinfo
+coverage.out
 .cache
 .docs-site
 .jekyll-cache

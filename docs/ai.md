@@ -6,7 +6,7 @@ eyebrow: Agent skill
 lead: One command teaches Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and other coding agents how your secrets work, and that they never get to see them.
 permalink: /ai/
 hero_shell: |-
-  npx msecrets skill
+  msecrets skill
   git add .claude/skills .agents/skills
 ---
 
@@ -44,18 +44,18 @@ The rules are instructions, not a sandbox: an agent that can run commands as you
 ### In your project (recommended)
 
 ```bash
-npx msecrets skill
+msecrets skill
 ```
 
 This writes the skill to `.claude/skills/msecrets/SKILL.md` (Claude Code) and `.agents/skills/msecrets/SKILL.md`
 (Codex, Cursor, GitHub Copilot, Gemini CLI, and other agents that read `.agents/skills`) at the root of your git
-repository. Commit both, and every teammate's agent knows msecrets. The skill comes from the installed
-`@msecrets/ui`, so it always matches your version; run `npx msecrets skill` again after upgrading.
+repository. Commit both, and every teammate's agent knows msecrets. The skill is built into
+the `msecrets` binary, so it always matches your version; run `msecrets skill` again after upgrading.
 
 ### For yourself, in every project
 
 ```bash
-npx msecrets skill --global       # ~/.claude/skills and ~/.agents/skills
+msecrets skill --global       # ~/.claude/skills and ~/.agents/skills
 ```
 
 ### Other ways
@@ -70,7 +70,7 @@ In Claude Code, as a plugin that updates with the repository:
 /plugin install msecrets --marketplace k18k/msecrets
 ```
 
-`npx msecrets skill --print` prints the skill, for agents with their own instruction files.
+`msecrets skill --print` prints the skill, for agents with their own instruction files.
 
 ## Working with an agent
 
@@ -81,12 +81,12 @@ You keep the values; the agent writes the code. A typical change:
    to run:
 
    ```bash
-   npx msecrets set SENTRY_DSN --env staging
-   npx msecrets set SENTRY_DSN --env production
-   npx msecrets scope SENTRY_DSN staging production
+   msecrets set SENTRY_DSN --env staging
+   msecrets set SENTRY_DSN --env production
+   msecrets scope SENTRY_DSN staging production
    ```
 
-3. You run them in your terminal; the prompt hides what you type. The agent runs `npx msecrets check`, and you
+3. You run them in your terminal; the prompt hides what you type. The agent runs `msecrets check`, and you
    commit `msecrets.json` with the code.
 
 Values that nobody needs to know, like a random session key, the agent can generate and pipe straight into

@@ -84,9 +84,9 @@ exist side by side while you migrate:
 ```bash
 # 1. With msecrets 3 (its UI or SDK), collect each environment's values into a dotenv file outside the repository.
 # 2. With msecrets 4:
-npx msecrets init --env development,production
-npx msecrets import ~/production.env --env production
-npx msecrets import ~/development.env --env development
-npx msecrets check
+msecrets init --env development,production
+msecrets import ~/production.env --env production
+msecrets import ~/development.env --env development
+msecrets check
 # 3. Delete the dotenv files and .env.ms.json.
 ```

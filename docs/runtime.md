@@ -3,10 +3,10 @@ layout: default
 title: Runtime SDK
 description: Read msecrets values at runtime with @msecrets/ts-sdk.
 eyebrow: "@msecrets/ts-sdk"
-lead: Applications import the committed file and get their environment back as a typed object, from a synchronous, dependency-free SDK.
+lead: Applications import the committed file and get their environment back as a typed object, from a synchronous, dependency-free SDK (the Go core, compiled to WebAssembly).
 permalink: /runtime/
 hero_shell: |-
-  npm install @msecrets/ts-sdk
+  npm install --allow-git=root github:k18k/msecrets#ts-sdk
 ---
 
 ## Import the file, get typed secrets
@@ -101,13 +101,13 @@ Create a key for the workflow and send it straight to a GitHub secret, so it nev
 history, or on disk:
 
 ```bash
-npx msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
+msecrets recipient add github-actions --generate --env production | gh secret set MSECRETS_IDENTITY
 git add msecrets.json && git commit -m "GitHub Actions can read production secrets" && git push
 ```
 
 This adds the read-only recipient `github-actions` to `production`, re-encrypts the production values for it with
 your key, and stores its private key as the repository secret `MSECRETS_IDENTITY`. If `gh` fails (not logged in),
-replace the key with `npx msecrets recipient rotate github-actions --generate | gh secret set MSECRETS_IDENTITY`.
+replace the key with `msecrets recipient rotate github-actions --generate | gh secret set MSECRETS_IDENTITY`.
 
 {% raw %}
 ```yaml
@@ -134,9 +134,9 @@ jobs:
 - **Protect production with GitHub Environments.** `gh secret set MSECRETS_IDENTITY --env production` stores the
   secret in the `production` environment instead of the repository; only jobs with `environment: production` get
   it, after the approvals you configure.
-- **Check every pull request.** `npx msecrets check` needs no key, so it also runs for pull requests from forks,
+- **Check every pull request.** `msecrets check` needs no key, so it also runs for pull requests from forks,
   which never receive secrets.
-- **Revoke.** `npx msecrets recipient rm github-actions` re-encrypts everything without the key; then delete the
+- **Revoke.** `msecrets recipient rm github-actions` re-encrypts everything without the key; then delete the
   GitHub secret and rotate the values msecrets lists.
 
 ## API

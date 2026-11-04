@@ -11,11 +11,12 @@ permalink: /security/
 
 - **Encryption:** every value is an independent [age v1](https://c2sp.org/age) file encrypted to the recipients
   of its environment: X25519, or ML-KEM-768 + X25519 (X-Wing) for post-quantum keys, with ChaCha20-Poly1305 and
-  HKDF-SHA-256. The implementation passes the complete [C2SP age test vector suite](https://github.com/C2SP/CCTV/tree/main/age)
-  and is tested for interoperability with the reference `age` implementation.
+  HKDF-SHA-256. Encryption is the reference Go implementation, [`filippo.io/age`](https://github.com/FiloSottile/age),
+  and passes the complete [C2SP age test vector suite](https://github.com/C2SP/CCTV/tree/main/age).
 - **Signatures:** every value is signed with Ed25519 by a recipient of its environment. The signature covers the
   file id, the secret name, the environment, the digest of the recipient keys, and the ciphertext.
-- **Primitives:** all cryptography comes from Node.js `node:crypto` (OpenSSL). msecrets has no dependencies.
+- **Primitives:** the Go standard library, `filippo.io/age`, and `golang.org/x/crypto` (SSH keys). The published
+  packages have no npm dependencies.
 
 ## What is protected
 
@@ -48,7 +49,7 @@ cannot hide lines from reviewers or write to their clipboard with terminal escap
 
 Treat the whole `msecrets.json` of a pull request as attacker-controlled, including who may read and sign. The
 file cannot prove who a recipient really is; trust starts with the reviewed version on your default branch. Each
-row is a [regression test](https://github.com/k18k/msecrets/blob/master/packages/ui/test/hostile-changes.test.ts):
+row is a [regression test](https://github.com/k18k/msecrets/blob/master/internal/cli/hostile_test.go):
 
 | The pull request…                                   | Signatures and encryption                                                                                   | `git diff` shows                                   |
 | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |

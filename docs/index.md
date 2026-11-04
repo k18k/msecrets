@@ -10,10 +10,10 @@ primary_label: Quick start
 secondary_link: "/cli/"
 secondary_label: CLI & terminal UI
 hero_shell: |-
-  npm install --save-dev @msecrets/ui
-  npx msecrets init
-  npx msecrets set DATABASE_URL
-  npx msecrets run -- npm start
+  npm install -g --allow-git=all github:k18k/msecrets#cli
+  msecrets init
+  msecrets set DATABASE_URL
+  msecrets run -- npm start
 ---
 
 <div class="intro-strip">
@@ -27,7 +27,7 @@ hero_shell: |-
   </div>
   <div class="stat">
     <strong>0 dependencies</strong>
-    <span>Pure TypeScript on <code>node:crypto</code>. Linux, macOS, Windows, Node.js 20+.</span>
+    <span>A static Go binary and a WebAssembly SDK. Linux, macOS, Windows, Node.js 20+.</span>
   </div>
 </div>
 
@@ -61,12 +61,12 @@ hero_shell: |-
 {: #quick-start }
 
 ```bash
-npm install --save-dev @msecrets/ui
-npx msecrets init                 # creates msecrets.json and your key (OS keychain when available)
-npx msecrets set DATABASE_URL     # prompts for the value
-npx msecrets                      # the terminal UI: every secret in every environment
-npx msecrets run -- npm start     # your app reads the secrets as environment variables
-npx msecrets git setup            # readable diffs and structural merges
+npm install -g --allow-git=all github:k18k/msecrets#cli
+msecrets init                 # creates msecrets.json and your key (OS keychain when available)
+msecrets set DATABASE_URL     # prompts for the value
+msecrets                      # the terminal UI: every secret in every environment
+msecrets run -- npm start     # your app reads the secrets as environment variables
+msecrets git setup            # readable diffs and structural merges
 git add msecrets.json .gitattributes
 ```
 

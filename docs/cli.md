@@ -2,22 +2,24 @@
 layout: default
 title: CLI & terminal UI
 description: The msecrets command line and terminal UI.
-eyebrow: "@msecrets/ui"
+eyebrow: "msecrets"
 lead: One binary, msecrets, to create the secrets file, set values, run your app, and manage access. Without arguments it opens a full-screen terminal UI.
 permalink: /cli/
 hero_shell: |-
-  npm install --save-dev @msecrets/ui
-  npx msecrets --help
+  npm install -g --allow-git=all github:k18k/msecrets#cli
+  msecrets --help
 ---
 
 ## Install
 
 ```bash
-npm install --save-dev @msecrets/ui     # per project: npx msecrets …
-npm install --global @msecrets/ui       # everywhere: msecrets …
+npm install -g --allow-git=all github:k18k/msecrets#cli
+msecrets completion bash > ~/.local/share/bash-completion/completions/msecrets   # or zsh, fish, powershell
 ```
 
-Node.js 20 or newer on Linux, macOS, or Windows. The package has no dependencies.
+A prebuilt Go binary for Linux, macOS, or Windows (x64, arm64), installed from git: `cli` pulls the
+`cli-<os>-<arch>` branch for your platform, so npm 12 needs `--allow-git=all`. Pin a release with
+`#cli-v<version>`. The package has no npm dependencies.
 
 ## The terminal UI
 

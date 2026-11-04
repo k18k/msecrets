@@ -77,7 +77,7 @@ How it behaves:
   a bundler (Vite, webpack, esbuild, Next.js) a plain `import file from "../msecrets.json"` works; in CommonJS use
   `createClient(require("../msecrets.json"))`. Make sure `msecrets.json` ships with the app (bundlers inline it; for
   `tsc` builds and Docker images, copy it).
-- Server-side only: the SDK uses `node:crypto`. Never import it into browser or client components.
+- Server-side only: the SDK reads keys through Node.js (`node:fs`, `node:child_process`). Never import it into browser or client components.
 
 Do not:
 
