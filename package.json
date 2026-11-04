@@ -1,0 +1,16 @@
+{
+  "version": "4.1.0",
+  "name": "@msecrets/cli-darwin-x64",
+  "description": "The msecrets binary for darwin x64.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k18k/msecrets.git"
+  },
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}
