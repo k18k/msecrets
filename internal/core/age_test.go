@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -139,11 +140,7 @@ func TestBitFlipsAndTruncations(t *testing.T) {
 }
 
 func fuzzCases() int {
-	if n := os.Getenv("MSECRETS_FUZZ_CASES"); n != "" {
-		var cases int
-		for _, digit := range n {
-			cases = cases*10 + int(digit-'0')
-		}
+	if cases, err := strconv.Atoi(os.Getenv("MSECRETS_FUZZ_CASES")); err == nil {
 		return cases
 	}
 	return 300

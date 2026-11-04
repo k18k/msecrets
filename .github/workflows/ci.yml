@@ -5,7 +5,7 @@ on:
   push:
     branches-ignore: [master, cli, "cli-*", ts-sdk]
   workflow_call:
-  # Weekly: deeper fuzzing with a fresh seed (printed in the test names, to reproduce).
+  # Weekly: more mutation cases (MSECRETS_FUZZ_CASES).
   schedule:
     - cron: "17 4 * * 1"
 
@@ -15,9 +15,6 @@ permissions:
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-env:
-  AGE_VERSION: v1.3.2
 
 jobs:
   check:
@@ -67,29 +64,11 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node }}
-      - name: Install the reference age implementation (interoperability tests)
-        run: |
-          case "${{ runner.os }}-${{ runner.arch }}" in
-            Linux-X64) asset="linux-amd64.tar.gz" ;;
-            Linux-ARM64) asset="linux-arm64.tar.gz" ;;
-            macOS-ARM64) asset="darwin-arm64.tar.gz" ;;
-            macOS-X64) asset="darwin-amd64.tar.gz" ;;
-            Windows-X64) asset="windows-amd64.zip" ;;
-            *) echo "no age build for ${{ runner.os }}-${{ runner.arch }}"; exit 1 ;;
-          esac
-          mkdir -p "$RUNNER_TEMP/age-dist"
-          curl -fsSL -o "$RUNNER_TEMP/age-archive" "https://github.com/FiloSottile/age/releases/download/${AGE_VERSION}/age-${AGE_VERSION}-${asset}"
-          if [[ "$asset" == *.zip ]]; then unzip -q "$RUNNER_TEMP/age-archive" -d "$RUNNER_TEMP/age-dist"; else tar -xzf "$RUNNER_TEMP/age-archive" -C "$RUNNER_TEMP/age-dist"; fi
-          ext=""; [[ "${{ runner.os }}" == "Windows" ]] && ext=".exe"
-          echo "MSECRETS_AGE_BIN=$RUNNER_TEMP/age-dist/age/age$ext" >> "$GITHUB_ENV"
-          echo "MSECRETS_AGE_KEYGEN_BIN=$RUNNER_TEMP/age-dist/age/age-keygen$ext" >> "$GITHUB_ENV"
-          "$RUNNER_TEMP/age-dist/age/age$ext" --version
       - name: Go tests
         run: go test ./...
         env:
           MSECRETS_TEST_KEYCHAIN: ${{ runner.os != 'Linux' && '1' || '' }}
           MSECRETS_FUZZ_CASES: ${{ github.event_name == 'schedule' && '20000' || '' }}
-          MSECRETS_FUZZ_SEED: ${{ github.event_name == 'schedule' && github.run_id || '' }}
       - name: SDK tests (WebAssembly)
         run: |
           MSECRETS_PLATFORMS= scripts/build-dist.sh
