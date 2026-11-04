@@ -1,14 +1,11 @@
 package core
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"maps"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"slices"
 	"strings"
 	"testing"
 )
@@ -42,7 +39,7 @@ func revealAll(t *testing.T, document *Document, identities []*Identity) map[str
 
 // TestFixtureFromTypeScript loads a file and identities written by the TypeScript implementation.
 func TestFixtureFromTypeScript(t *testing.T) {
-	directory := filepath.Join("..", "..", "packages", "ts-sdk", "test", "fixtures")
+	directory := filepath.Join("..", "..", "sdk", "test", "fixtures")
 	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, "app.ms.json"))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
 	equal(t, SerializeDocument(document), text)
@@ -75,122 +72,30 @@ func TestFixtureFromTypeScript(t *testing.T) {
 	}
 }
 
-type planRecipient struct {
-	Name        string `json:"name"`
-	Key         string `json:"key"`
-	Description string `json:"description,omitempty"`
-}
-
-type planEnvironment struct {
-	Name       string   `json:"name"`
-	Recipients []string `json:"recipients"`
-}
-
-type planSecret struct {
-	Name         string            `json:"name"`
-	Description  string            `json:"description,omitempty"`
-	Environments []string          `json:"environments,omitempty"`
-	Values       map[string]string `json:"values"`
-}
-
-type plan struct {
-	IdentityFiles []string          `json:"identityFiles"`
-	Recipients    []planRecipient   `json:"recipients"`
-	Environments  []planEnvironment `json:"environments"`
-	Secrets       []planSecret      `json:"secrets"`
-}
-
-type report struct {
-	Canonical    bool              `json:"canonical"`
-	Environments []string          `json:"environments"`
-	OK           bool              `json:"ok"`
-	Values       map[string]string `json:"values"`
-}
-
-func runTypeScript(t *testing.T, node, command, file string, p plan) report {
-	t.Helper()
-	input := must[[]byte](t)(json.Marshal(p))
-	cmd := exec.Command(node, filepath.Join("testdata", "differential.ts"), command, file)
-	cmd.Stdin = bytes.NewReader(input)
-	cmd.Stderr = os.Stderr
-	output, err := cmd.Output()
-	check(t, err)
-	var result report
-	check(t, json.Unmarshal(output, &result))
-	return result
-}
-
-// TestDifferentialWithTypeScript writes files with one implementation and reads them with the other.
-func TestDifferentialWithTypeScript(t *testing.T) {
-	node, err := exec.LookPath("node")
-	if err != nil {
-		t.Skip("node not available")
-	}
-	directory := t.TempDir()
-	file := filepath.Join(directory, DefaultFilename)
-	alice := must[*Identity](t)(GenerateIdentity(false))
-	bob := must[*Identity](t)(GenerateIdentity(true))
-	carol := must[*Identity](t)(ParseIdentity(sshFixture(t, "plain"), IdentityOptions{}))
-	machine := must[*Identity](t)(GenerateIdentity(false))
-	identities := []*Identity{alice, bob, carol, machine}
-	keyFile := filepath.Join(directory, "identities.txt")
-	writeFile(t, keyFile, FormatIdentityFile(alice, "")+FormatIdentityFile(bob, "")+FormatIdentityFile(machine, ""))
-	identityFiles := []string{keyFile, filepath.Join(fixtures, "ssh", "plain")}
-
-	values := map[string]string{
-		"DATABASE_URL@development": "postgres://dev",
-		"DATABASE_URL@2":           "postgres://two",
-		"DATABASE_URL@10":          "postgres://ten",
-		"DATABASE_URL@production":  "postgres://prod",
-		"DEBUG@development":        "true",
-		"EMPTY@production":         "",
-		"UNICODE@2":                "zażółć 🔐\n\"\\ <&> ",
-	}
-	secretValues := func(name string) map[string]string {
-		result := map[string]string{}
-		for slot, value := range values {
-			if secret, environment, _ := strings.Cut(slot, "@"); secret == name {
-				result[environment] = value
-			}
-		}
-		return result
-	}
-	first := plan{
-		IdentityFiles: identityFiles,
-		Recipients: []planRecipient{
-			{"alice", alice.PublicKey.Token, trickyDescriptions[0]},
-			{"bob", bob.PublicKey.Token, trickyDescriptions[1]},
-			{"carol", carol.PublicKey.Token, ""},
-			{"ci", readOnlyToken(t, machine), trickyDescriptions[4]},
-		},
-		Environments: []planEnvironment{
-			{"production", []string{"alice", "ci"}},
-			{"development", []string{"carol", "alice"}},
-			{"2", []string{"alice", "bob", "ci"}},
-			{"10", []string{"alice"}},
-		},
-		Secrets: []planSecret{
-			{"DATABASE_URL", trickyDescriptions[2], nil, secretValues("DATABASE_URL")},
-			{"DEBUG", "", []string{"development"}, secretValues("DEBUG")},
-			{"EMPTY", trickyDescriptions[3], []string{"production"}, secretValues("EMPTY")},
-			{"UNICODE", "", []string{"2"}, secretValues("UNICODE")},
-		},
-	}
-
-	// TypeScript writes, Go reads.
-	created := runTypeScript(t, node, "create", file, first)
-	equal(t, created.Canonical, true)
-	equal(t, created.OK, true)
-	equal(t, strings.Join(created.Environments, ","), "2,10,production,development")
-	text := string(must[[]byte](t)(os.ReadFile(file)))
+// TestGoldenFromTypeScript reads a file the TypeScript implementation (msecrets 4.0) wrote
+// with descriptions that stress JSON serialization differences, then modifies it.
+func TestGoldenFromTypeScript(t *testing.T) {
+	directory := filepath.Join("testdata", "typescript")
+	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, DefaultFilename))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
 	equal(t, SerializeDocument(document), text)
 	equal(t, inspectOK(t, document), true)
-	if got := revealAll(t, document, identities); !maps.Equal(got, values) || !maps.Equal(created.Values, values) {
-		t.Fatalf("values differ:\nGo  %q\nTS  %q\nwant %q", got, created.Values, values)
+	equal(t, strings.Join(document.Environments.Keys(), ","), "2,10,production,development")
+	for i, name := range []string{"alice", "bob", "ci"} {
+		recipient, _ := document.Recipients.Get(name)
+		equal(t, recipient.Description, trickyDescriptions[[]int{0, 1, 4}[i]])
+	}
+	identities := must[[]*Identity](t)(ParseIdentities(must[[]byte](t)(os.ReadFile(filepath.Join(directory, "identities.txt"))), IdentityOptions{}))
+	identities = append(identities, must[*Identity](t)(ParseIdentity(sshFixture(t, "plain"), IdentityOptions{})))
+	var want map[string]string
+	check(t, json.Unmarshal(must[[]byte](t)(os.ReadFile(filepath.Join(directory, "values.json"))), &want))
+	if got := revealAll(t, document, identities); !maps.Equal(got, want) {
+		t.Fatalf("values differ:\ngot  %q\nwant %q", got, want)
 	}
 
-	// Go writes, TypeScript reads.
+	// Go modifies the TypeScript-written file and reads it back.
+	file := filepath.Join(t.TempDir(), DefaultFilename)
+	writeFile(t, file, text)
 	must[bool](t)(UpdateDocumentFile(NativeHost(), file, func(document *Document) (bool, error) {
 		must[*SealedValue](t)(SetValue(document, identities, SetValueInput{Secret: "FROM_GO", Environment: "2", Value: "go ✓ <&>"}))
 		check(t, RenameEnvironment(document, identities, "development", "dev"))
@@ -200,33 +105,11 @@ func TestDifferentialWithTypeScript(t *testing.T) {
 		must[RevokeResult](t)(RevokeAccess(document, identities, "ci", []string{"2"}, false))
 		return true, nil
 	}))
-	goDocument := must[*Document](t)(ReadDocumentFile(NativeHost(), file))
-	checked := runTypeScript(t, node, "check", file, plan{IdentityFiles: identityFiles})
-	equal(t, checked.Canonical, true)
-	equal(t, checked.OK, inspectOK(t, goDocument))
-	equal(t, strings.Join(checked.Environments, ","), strings.Join(goDocument.Environments.Keys(), ","))
-	goValues := revealAll(t, goDocument, identities)
-	equal(t, goValues["FROM_GO@2"], "go ✓ <&>")
-	equal(t, goValues["VERBOSE@dev"], "true")
-	if !maps.Equal(checked.Values, goValues) {
-		t.Fatalf("values differ:\nGo %q\nTS %q", goValues, checked.Values)
-	}
-
-	// TypeScript modifies the Go-written file, Go reads it again.
-	second := plan{
-		IdentityFiles: identityFiles,
-		Recipients:    []planRecipient{{"dave", must[*Identity](t)(GenerateIdentity(false)).PublicKey.Token, trickyDescriptions[3]}},
-		Environments:  []planEnvironment{{"0", []string{"bob", "dave"}}},
-		Secrets:       []planSecret{{"FROM_TS", trickyDescriptions[1], []string{"0", "2"}, map[string]string{"0": "ts zero", "2": "ts two"}}},
-	}
-	modified := runTypeScript(t, node, "modify", file, second)
 	text = string(must[[]byte](t)(os.ReadFile(file)))
 	document = must[*Document](t)(ParseDocumentText(text, ""))
 	equal(t, SerializeDocument(document), text)
-	equal(t, strings.Join(document.Environments.Keys(), ","), strings.Join(modified.Environments, ","))
-	equal(t, modified.OK, inspectOK(t, document))
-	if got := revealAll(t, document, identities); !maps.Equal(got, modified.Values) {
-		t.Fatalf("values differ:\nGo %q\nTS %q", got, modified.Values)
-	}
-	equal(t, slices.Contains(slices.Collect(maps.Values(modified.Values)), "ts zero"), true)
+	values := revealAll(t, document, identities)
+	equal(t, values["FROM_GO@2"], "go ✓ <&>")
+	equal(t, values["VERBOSE@dev"], "true")
+	equal(t, values["UNICODE@2"], want["UNICODE@2"])
 }

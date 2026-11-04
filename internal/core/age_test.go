@@ -26,7 +26,7 @@ var vectorCodes = map[string]ErrorCode{
 
 // TestAgeVectors runs the C2SP age test vectors through DecryptAge.
 func TestAgeVectors(t *testing.T) {
-	directory := filepath.Join(fixtures, "..", "vectors")
+	directory := filepath.Join("testdata", "vectors")
 	entries, err := os.ReadDir(directory)
 	check(t, err)
 	for _, entry := range entries {

@@ -1,0 +1,9 @@
+{
+  "DATABASE_URL@10": "postgres://ten",
+  "DATABASE_URL@2": "postgres://two",
+  "DATABASE_URL@development": "postgres://dev",
+  "DATABASE_URL@production": "postgres://prod",
+  "DEBUG@development": "true",
+  "EMPTY@production": "",
+  "UNICODE@2": "zażółć 🔐\n\"\\ \u003c\u0026\u003e "
+}

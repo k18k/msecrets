@@ -202,7 +202,7 @@ func TestSchemaPatterns(t *testing.T) {
 			t.Error(entry.Key)
 		}
 	}
-	plain, err := os.ReadFile(filepath.Join("..", "..", "packages", "core", "test", "fixtures", "ssh", "plain.pub"))
+	plain, err := os.ReadFile(filepath.Join(fixtures, "ssh", "plain.pub"))
 	check(t, err)
 	if line := strings.Join(strings.Fields(string(plain))[:2], " "); !key.MatchString(line) {
 		t.Error(line)

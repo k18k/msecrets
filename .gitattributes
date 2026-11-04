@@ -1,4 +1,3 @@
 * text=auto eol=lf
-packages/core/test/vectors/** -text
-packages/core/test/fixtures/** -text
-packages/ts-sdk/test/fixtures/** -text
+internal/core/testdata/** -text
+sdk/test/fixtures/** -text

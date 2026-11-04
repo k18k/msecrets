@@ -13,7 +13,7 @@ import (
 	"filippo.io/age"
 )
 
-var fixtures = filepath.Join("..", "..", "packages", "core", "test", "fixtures")
+var fixtures = filepath.Join("testdata", "fixtures")
 
 func fixture(t *testing.T, name string) string {
 	t.Helper()
