@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "msecrets",
-      "source": "./packages/ui",
+      "source": "./",
       "description": "Teaches Claude to read msecrets secrets with @msecrets/ts-sdk and to manage them without ever seeing a value"
     }
   ]

@@ -95,5 +95,5 @@ Values that nobody needs to know, like a random session key, the agent can gener
 ## What is in the skill
 
 The full text is
-[`packages/ui/skills/msecrets/SKILL.md`](https://github.com/k18k/msecrets/blob/master/packages/ui/skills/msecrets/SKILL.md).
+[`skills/msecrets/SKILL.md`](https://github.com/k18k/msecrets/blob/master/skills/msecrets/SKILL.md).
 It is plain Markdown: read it to know exactly what your agents are told.
