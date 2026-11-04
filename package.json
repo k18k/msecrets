@@ -1,0 +1,16 @@
+{
+  "version": "4.1.0",
+  "name": "@msecrets/cli-win32-x64",
+  "description": "The msecrets binary for win32 x64.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k18k/msecrets.git"
+  },
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ]
+}
