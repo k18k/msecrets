@@ -1,0 +1,45 @@
+{
+  "name": "@msecrets/ts-sdk",
+  "version": "0.0.0",
+  "description": "Runtime SDK for msecrets: verify and decrypt the secrets committed in msecrets.json. Zero dependencies.",
+  "keywords": [
+    "age",
+    "dotenv",
+    "encryption",
+    "env",
+    "post-quantum",
+    "secrets",
+    "secrets-management"
+  ],
+  "homepage": "https://k18k.github.io/msecrets/",
+  "bugs": "https://github.com/k18k/msecrets/issues",
+  "license": "MIT",
+  "author": "Krystian Mikołajczyk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k18k/msecrets.git"
+  },
+  "files": [
+    "index.cjs",
+    "index.mjs",
+    "index.d.ts",
+    "msecrets.wasm",
+    "wasm_exec.js",
+    "schema"
+  ],
+  "sideEffects": false,
+  "main": "./index.cjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs",
+      "require": "./index.cjs"
+    },
+    "./schema/v4.json": "./schema/v4.json",
+    "./package.json": "./package.json"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

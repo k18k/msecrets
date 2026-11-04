@@ -114,11 +114,15 @@ func TestEncryptedSSHKeys(t *testing.T) {
 	for _, name := range []string{"encrypted-ctr", "encrypted-gcm"} {
 		_, err := ParseIdentity(sshFixture(t, name), IdentityOptions{})
 		expectError(t, err, CodeIdentitySource, "passphrase-protected")
-		_, err = ParseIdentity(sshFixture(t, name), passphrase("wrong"))
-		expectError(t, err, CodeIdentitySource, "Incorrect passphrase")
-		identity := must[*Identity](t)(ParseIdentity(sshFixture(t, name), passphrase("correct horse")))
-		equal(t, identity.PublicKey.Token, must[*PublicKey](t)(ParsePublicKey(sshFixture(t, name+".pub"))).Token)
 	}
+	_, err := ParseIdentity(sshFixture(t, "encrypted-ctr"), passphrase("wrong"))
+	expectError(t, err, CodeIdentitySource, "Incorrect passphrase")
+	identity := must[*Identity](t)(ParseIdentity(sshFixture(t, "encrypted-ctr"), passphrase("correct horse")))
+	equal(t, identity.PublicKey.Token, must[*PublicKey](t)(ParsePublicKey(sshFixture(t, "encrypted-ctr.pub"))).Token)
+
+	// x/crypto/ssh does not decrypt aes256-gcm@openssh.com keys.
+	_, err = ParseIdentity(sshFixture(t, "encrypted-gcm"), passphrase("correct horse"))
+	expectError(t, err, CodeIdentitySource, "aes256-gcm@openssh.com; re-encrypt the key with `ssh-keygen -p -Z aes256-ctr -f KEY`")
 }
 
 func TestRSAKeysUnsupported(t *testing.T) {
@@ -129,7 +133,7 @@ func TestRSAKeysUnsupported(t *testing.T) {
 }
 
 func TestEd25519NotOnCurve(t *testing.T) {
-	wire := wireString([]byte("ssh-ed25519"), bytes.Repeat([]byte{0xff}, 32))
+	wire := append([]byte("\x00\x00\x00\x0bssh-ed25519\x00\x00\x00\x20"), bytes.Repeat([]byte{0xff}, 32)...)
 	_, err := ParsePublicKey("ssh-ed25519 " + base64.StdEncoding.EncodeToString(wire))
 	expectError(t, err, CodeInvalidKey, "Invalid Ed25519 public key")
 }

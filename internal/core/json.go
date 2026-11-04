@@ -1,12 +1,12 @@
 package core
 
 import (
+	"encoding/json/jsontext"
 	"fmt"
+	"io"
 	"math"
 	"strconv"
 	"strings"
-	"unicode/utf16"
-	"unicode/utf8"
 )
 
 // JSON values as produced by [ParseJSON]: *Map[any] for objects, []any for
@@ -14,235 +14,75 @@ import (
 
 const maxJSONDepth = 64
 
-type jsonParser struct {
-	text  string
-	pos   int
-	depth int
-}
-
-// ParseJSON parses JSON strictly: valid UTF-8 only, no duplicate keys, no lone
-// surrogates, and at most 64 levels of nesting. Object key order follows [Map].
+// ParseJSON parses JSON strictly (encoding/json/jsontext defaults: valid UTF-8,
+// no lone surrogates, no duplicate names) with at most 64 levels of nesting.
+// Object key order follows [Map].
 func ParseJSON(text string) (any, error) {
-	if !utf8.ValidString(text) {
-		return nil, fmt.Errorf("Invalid UTF-8")
-	}
-	p := &jsonParser{text: text}
-	value, err := p.value()
+	decoder := jsontext.NewDecoder(strings.NewReader(text))
+	value, err := readJSON(decoder)
 	if err != nil {
 		return nil, err
 	}
-	p.space()
-	if p.pos < len(p.text) {
-		return nil, p.unexpected()
+	if _, err := decoder.ReadToken(); err != io.EOF {
+		if err == nil {
+			err = fmt.Errorf("unexpected data after the top-level value at position %d", decoder.InputOffset())
+		}
+		return nil, err
 	}
 	return value, nil
 }
 
-func (p *jsonParser) unexpected() error {
-	if p.pos >= len(p.text) {
-		return fmt.Errorf("Unexpected end of JSON input")
-	}
-	r, _ := utf8.DecodeRuneInString(p.text[p.pos:])
-	return fmt.Errorf("Unexpected token %s at position %d", jsQuote(string(r)), p.pos)
-}
-
-func (p *jsonParser) space() {
-	for p.pos < len(p.text) && strings.IndexByte(" \t\n\r", p.text[p.pos]) >= 0 {
-		p.pos++
-	}
-}
-
-func (p *jsonParser) consume(literal string) bool {
-	if strings.HasPrefix(p.text[p.pos:], literal) {
-		p.pos += len(literal)
-		return true
-	}
-	return false
-}
-
-func (p *jsonParser) value() (any, error) {
-	p.space()
-	if p.pos >= len(p.text) {
-		return nil, p.unexpected()
-	}
-	switch c := p.text[p.pos]; {
-	case c == '{' || c == '[':
-		p.depth++
-		if p.depth > maxJSONDepth {
-			return nil, fmt.Errorf("Nested too deeply at position %d", p.pos)
-		}
-		defer func() { p.depth-- }()
-		if c == '{' {
-			return p.object()
-		}
-		return p.array()
-	case c == '"':
-		return p.string()
-	case c == '-' || (c >= '0' && c <= '9'):
-		return p.number()
-	case p.consume("true"):
-		return true, nil
-	case p.consume("false"):
-		return false, nil
-	case p.consume("null"):
-		return nil, nil
-	}
-	return nil, p.unexpected()
-}
-
-func (p *jsonParser) object() (any, error) {
-	object := &Map[any]{}
-	p.pos++
-	p.space()
-	if p.consume("}") {
-		return object, nil
-	}
-	for {
-		p.space()
-		start := p.pos
-		if p.pos >= len(p.text) || p.text[p.pos] != '"' {
-			return nil, p.unexpected()
-		}
-		key, err := p.string()
-		if err != nil {
-			return nil, err
-		}
-		if object.Has(key) {
-			return nil, fmt.Errorf("Duplicate key %s at position %d", jsQuote(key), start)
-		}
-		p.space()
-		if !p.consume(":") {
-			return nil, p.unexpected()
-		}
-		value, err := p.value()
-		if err != nil {
-			return nil, err
-		}
-		object.Set(key, value)
-		p.space()
-		if p.consume("}") {
-			return object, nil
-		}
-		if !p.consume(",") {
-			return nil, p.unexpected()
-		}
-	}
-}
-
-func (p *jsonParser) array() (any, error) {
-	array := []any{}
-	p.pos++
-	p.space()
-	if p.consume("]") {
-		return array, nil
-	}
-	for {
-		value, err := p.value()
-		if err != nil {
-			return nil, err
-		}
-		array = append(array, value)
-		p.space()
-		if p.consume("]") {
-			return array, nil
-		}
-		if !p.consume(",") {
-			return nil, p.unexpected()
-		}
-	}
-}
-
-func (p *jsonParser) hex4() (rune, bool) {
-	if p.pos+4 > len(p.text) {
-		return 0, false
-	}
-	n, err := strconv.ParseUint(p.text[p.pos:p.pos+4], 16, 32)
+func readJSON(decoder *jsontext.Decoder) (any, error) {
+	token, err := decoder.ReadToken()
 	if err != nil {
-		return 0, false
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return nil, err
 	}
-	p.pos += 4
-	return rune(n), true
-}
-
-func (p *jsonParser) string() (string, error) {
-	p.pos++
-	var b strings.Builder
-	for {
-		if p.pos >= len(p.text) {
-			return "", fmt.Errorf("Unterminated string in JSON at position %d", p.pos)
-		}
-		c := p.text[p.pos]
-		switch {
-		case c == '"':
-			p.pos++
-			return b.String(), nil
-		case c < 0x20:
-			return "", fmt.Errorf("Bad control character in string literal in JSON at position %d", p.pos)
-		case c != '\\':
-			b.WriteByte(c)
-			p.pos++
-			continue
-		}
-		start := p.pos
-		p.pos++
-		if p.pos >= len(p.text) {
-			return "", p.unexpected()
-		}
-		escape := p.text[p.pos]
-		p.pos++
-		if i := strings.IndexByte(`"\/bfnrt`, escape); i >= 0 {
-			b.WriteByte("\"\\/\b\f\n\r\t"[i])
-			continue
-		}
-		if escape != 'u' {
-			return "", fmt.Errorf("Bad escaped character in JSON at position %d", start)
-		}
-		r, ok := p.hex4()
-		if !ok {
-			return "", fmt.Errorf("Bad Unicode escape in JSON at position %d", start)
-		}
-		if utf16.IsSurrogate(r) {
-			low := rune(0)
-			if r < 0xdc00 && p.consume(`\u`) {
-				if low, ok = p.hex4(); !ok {
-					return "", fmt.Errorf("Bad Unicode escape in JSON at position %d", p.pos)
-				}
+	if decoder.StackDepth() > maxJSONDepth {
+		return nil, fmt.Errorf("nested too deeply at position %d", decoder.InputOffset())
+	}
+	switch token.Kind() {
+	case 'n':
+		return nil, nil
+	case 't', 'f':
+		return token.Bool(), nil
+	case '"':
+		return token.String(), nil
+	case '0':
+		// Out of range values become ±Inf, as in JavaScript.
+		value, _ := strconv.ParseFloat(token.String(), 64)
+		return value, nil
+	case '[':
+		array := []any{}
+		for decoder.PeekKind() != ']' {
+			item, err := readJSON(decoder)
+			if err != nil {
+				return nil, err
 			}
-			if r = utf16.DecodeRune(r, low); r == utf8.RuneError {
-				return "", fmt.Errorf("Lone surrogate in JSON at position %d", start)
+			array = append(array, item)
+		}
+		_, err := decoder.ReadToken()
+		return array, err
+	case '{':
+		object := &Map[any]{}
+		for decoder.PeekKind() != '}' {
+			name, err := decoder.ReadToken()
+			if err != nil {
+				return nil, err
 			}
+			key := name.String()
+			value, err := readJSON(decoder)
+			if err != nil {
+				return nil, err
+			}
+			object.Set(key, value)
 		}
-		b.WriteRune(r)
+		_, err := decoder.ReadToken()
+		return object, err
 	}
-}
-
-func (p *jsonParser) number() (any, error) {
-	start := p.pos
-	digits := func() int {
-		begin := p.pos
-		for p.pos < len(p.text) && p.text[p.pos] >= '0' && p.text[p.pos] <= '9' {
-			p.pos++
-		}
-		return p.pos - begin
-	}
-	p.consume("-")
-	if !p.consume("0") && digits() == 0 {
-		return nil, p.unexpected()
-	}
-	if p.consume(".") && digits() == 0 {
-		return nil, p.unexpected()
-	}
-	if p.consume("e") || p.consume("E") {
-		if !p.consume("+") {
-			p.consume("-")
-		}
-		if digits() == 0 {
-			return nil, p.unexpected()
-		}
-	}
-	// Out of range values become ±Inf or 0, as in JavaScript.
-	value, _ := strconv.ParseFloat(p.text[start:p.pos], 64)
-	return value, nil
+	return nil, fmt.Errorf("unexpected token %v", token)
 }
 
 // jsQuote quotes a string like JavaScript's JSON.stringify.

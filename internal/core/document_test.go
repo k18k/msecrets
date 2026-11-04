@@ -179,7 +179,7 @@ func TestNames(t *testing.T) {
 }
 
 func TestSchemaPatterns(t *testing.T) {
-	schemaText, err := os.ReadFile(filepath.Join("..", "..", "packages", "ts-sdk", "schema", "v4.json"))
+	schemaText, err := os.ReadFile(filepath.Join("..", "..", "schema", "v4.json"))
 	check(t, err)
 	schema := parseJSONValue(t, string(schemaText))
 	pattern := func(section string) *regexp.Regexp {

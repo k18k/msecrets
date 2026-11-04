@@ -16,6 +16,7 @@ import (
 	"crypto/ed25519"
 	"crypto/hkdf"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"regexp"
 	"strings"
@@ -184,15 +185,18 @@ func ParseIdentity(text string, options IdentityOptions) (*Identity, error) {
 	trimmed := jsTrim(text)
 
 	if isOpenSSHPrivateKey(trimmed) {
-		key, err := parseOpenSSHPrivateKey(trimmed, options.Passphrase)
+		privateKey, err := parseOpenSSHPrivateKey(trimmed, options.Passphrase)
 		if err != nil {
 			return nil, err
 		}
-		publicKey, err := sshPublicKey(key.publicKeyLine)
+		sshKey, err := ssh.NewPublicKey(privateKey.Public())
+		if err != nil {
+			return nil, wrapError(CodeInvalidKey, err, "Invalid Ed25519 public key")
+		}
+		publicKey, err := sshPublicKey(sshEd25519 + " " + base64.StdEncoding.EncodeToString(sshKey.Marshal()))
 		if err != nil {
 			return nil, err
 		}
-		privateKey := ed25519.NewKeyFromSeed(key.seed)
 		ageID, err := agessh.NewEd25519Identity(privateKey)
 		if err != nil {
 			return nil, wrapError(CodeInvalidKey, err, "Invalid Ed25519 public key")

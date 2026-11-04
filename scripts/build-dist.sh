@@ -6,7 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 version=$(cat VERSION)
-platforms=${MSECRETS_PLATFORMS:-"linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"}
+platforms=${MSECRETS_PLATFORMS-"linux/amd64 linux/arm64 darwin/amd64 darwin/arm64 windows/amd64 windows/arm64"}
 
 # Sets "version" (and optionally more top-level fields, as JSON) in a package.json.
 set_package() {
