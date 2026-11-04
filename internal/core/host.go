@@ -98,11 +98,14 @@ func (nativeHost) LookupEnv(key string) (string, bool) { return os.LookupEnv(key
 func (nativeHost) Unsetenv(key string) error           { return os.Unsetenv(key) }
 func (nativeHost) Environ() []string                   { return os.Environ() }
 func (nativeHost) ReadFile(path string) ([]byte, error) {
-	return os.ReadFile(path)
+	var data []byte
+	err := retryShared(func() (err error) { data, err = os.ReadFile(path); return })
+	return data, err
 }
 
 func (nativeHost) CreateFile(path string, data []byte) error {
-	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	var file *os.File
+	err := retryShared(func() (err error) { file, err = os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644); return })
 	if err != nil {
 		return err
 	}
