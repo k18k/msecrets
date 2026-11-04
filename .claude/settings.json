@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *package-lock.json|*/packages/core/test/vectors/*) echo \"Protected by AGENTS.md: $f (lockfile or C2SP vectors). Ask the user first.\" >&2; exit 2 ;; esac"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); bin=\"$CLAUDE_PROJECT_DIR/node_modules/.bin/oxfmt\"; [ -x \"$bin\" ] || exit 0; case \"$f\" in */docs/*|*/test/vectors/*|*/test/fixtures/*|*/.github/badges/*) exit 0 ;; *.ts|*.json|*.md|*.yml) cd \"$CLAUDE_PROJECT_DIR\" && \"$bin\" \"$f\" >/dev/null ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
