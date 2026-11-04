@@ -51,6 +51,8 @@ func TestDangerousCommandsConfirm(t *testing.T) {
 func TestPassphraseProtectedIdentityFile(t *testing.T) {
 	ws := newWorkspace(t)
 	alice := ws.person("alice")
+	// A path wider than the terminal (110 columns): the prompt wraps instead of losing its end.
+	alice.config = filepath.Join(alice.config, strings.Repeat("a-long-directory-name", 6))
 	initArgs := []string{"init", "--store", "file", "--passphrase", "--name", "alice"}
 	mismatch := alice.interactive(t, initArgs, []exchange{
 		{`New passphrase for the identity file: `, "correct horse\r"},

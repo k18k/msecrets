@@ -11,6 +11,8 @@ import (
 
 func setVerbatim(*exec.Cmd, Command) {}
 
+func retryShared(operation func() error) error { return operation() }
+
 func processExists(pid int) bool {
 	process, err := os.FindProcess(pid)
 	if err != nil {

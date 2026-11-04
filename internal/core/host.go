@@ -113,10 +113,12 @@ func (nativeHost) CreateFile(path string, data []byte) error {
 	return errors.Join(err, file.Close())
 }
 
-func (nativeHost) Rename(from, to string) error { return os.Rename(from, to) }
+func (nativeHost) Rename(from, to string) error {
+	return retryShared(func() error { return os.Rename(from, to) })
+}
 
 func (nativeHost) Remove(path string) error {
-	if err := os.Remove(path); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := retryShared(func() error { return os.Remove(path) }); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	return nil

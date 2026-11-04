@@ -369,7 +369,11 @@ func TestIdentityUseStoresAbsolutePaths(t *testing.T) {
 	printed := erin.run(t, []string{"identity", "new", "--store", "print"})
 	writeFile(t, filepath.Join(ws.project, "erin.key"), identityFrom(printed.stdout)+"\n")
 	ok(t, erin.run(t, []string{"identity", "use", "file:erin.key"}))
-	want := "{\n  \"identities\": [\n    \"file:" + strings.ReplaceAll(filepath.Join(ws.project, "erin.key"), `\`, `\\`) + "\"\n  ]\n}\n"
+	project, err := filepath.EvalSymlinks(ws.project) // the working directory, as the OS reports it (/private/var on macOS)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "{\n  \"identities\": [\n    \"file:" + strings.ReplaceAll(filepath.Join(project, "erin.key"), `\`, `\\`) + "\"\n  ]\n}\n"
 	if got := readFile(t, filepath.Join(erin.config, "config.json")); got != want {
 		t.Fatalf("%q", got)
 	}

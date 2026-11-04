@@ -172,6 +172,9 @@ func (p *person) environ(extra map[string]string) []string {
 	env := map[string]string{
 		"PATH":                os.Getenv("PATH"),
 		"SystemRoot":          os.Getenv("SystemRoot"),
+		"TEMP":                os.TempDir(), // git on Windows writes textconv input to a temp file
+		"TMP":                 os.TempDir(),
+		"TMPDIR":              os.TempDir(),
 		"MSECRETS_CONFIG_DIR": p.config,
 		"NO_COLOR":            "1",
 		"TERM":                "xterm-256color",
@@ -343,7 +346,8 @@ loop:
 		mu.Lock()
 		text := ansi.Strip(screen.String())
 		mu.Unlock()
-		if len(pending) > 0 && regexp.MustCompile(pending[0].prompt).MatchString(text[seen:]) {
+		// Prompts wider than the terminal wrap; match them as one line.
+		if len(pending) > 0 && regexp.MustCompile(pending[0].prompt).MatchString(strings.NewReplacer("\r", "", "\n", "").Replace(text[seen:])) {
 			seen = len(text)
 			if pending[0].prompt != "" {
 				// Let the prompt finish starting (raw mode) before typing. An empty prompt

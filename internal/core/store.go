@@ -25,6 +25,9 @@ func isAbsolute(h Host, path string) bool {
 // resolvePath resolves path against cwd, like Node.js path.resolve(cwd, path).
 func resolvePath(h Host, cwd, path string) string {
 	if isAbsolute(h, path) {
+		if filepath.VolumeName(path) == "" {
+			path = filepath.VolumeName(cwd) + path // \tmp on Windows is on the drive of cwd
+		}
 		return filepath.Clean(path)
 	}
 	return filepath.Join(cwd, path)

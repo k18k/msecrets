@@ -7,6 +7,7 @@ import (
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 
 	"github.com/k18k/msecrets/internal/core"
 )
@@ -16,6 +17,7 @@ var errCancelled = errors.New("Cancelled")
 
 type promptModel struct {
 	input     textinput.Model
+	width     int
 	done      bool
 	cancelled bool
 }
@@ -23,6 +25,9 @@ type promptModel struct {
 func (m promptModel) Init() tea.Cmd { return nil }
 
 func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if size, ok := msg.(tea.WindowSizeMsg); ok {
+		m.width = size.Width
+	}
 	if key, ok := msg.(tea.KeyPressMsg); ok {
 		switch key.Keystroke() {
 		case "enter", "ctrl+j":
@@ -43,9 +48,17 @@ func (m promptModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m promptModel) View() tea.View {
 	if m.done || m.cancelled {
 		// The final frame stays on screen: the question, and the answer unless it is hidden.
-		return tea.NewView(m.input.Prompt + m.answer() + "\n")
+		return tea.NewView(m.wrap(m.input.Prompt+m.answer()) + "\n")
 	}
-	return tea.NewView(m.input.View())
+	return tea.NewView(m.wrap(m.input.View()))
+}
+
+// wrap breaks long questions (file paths) into lines; the renderer would cut them at the terminal width.
+func (m promptModel) wrap(text string) string {
+	if m.width <= 0 {
+		return text
+	}
+	return ansi.Hardwrap(text, m.width, false)
 }
 
 func (m promptModel) answer() string {
