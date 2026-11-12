@@ -1,5 +1,5 @@
 {
-  "version": "4.1.0",
+  "version": "5.0.0",
   "name": "@msecrets/cli-win32-arm64",
   "description": "The msecrets binary for win32 arm64.",
   "license": "MIT",
