@@ -37,12 +37,21 @@ func revealAll(t *testing.T, document *Document, identities []*Identity) map[str
 	return values
 }
 
+// withCurrentSchemaURL is the byte-identical re-serialization of a file msecrets 4 wrote: only
+// the "$schema" URL changes, from the one of the npm registry package to SchemaURL.
+func withCurrentSchemaURL(t *testing.T, text string) string {
+	t.Helper()
+	const npmSchemaURL = "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json"
+	equal(t, strings.Count(text, npmSchemaURL), 1)
+	return strings.Replace(text, npmSchemaURL, SchemaURL, 1)
+}
+
 // TestFixtureFromTypeScript loads a file and identities written by the TypeScript implementation.
 func TestFixtureFromTypeScript(t *testing.T) {
 	directory := filepath.Join("..", "..", "sdk", "test", "fixtures")
 	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, "app.ms.json"))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
-	equal(t, SerializeDocument(document), text)
+	equal(t, SerializeDocument(document), withCurrentSchemaURL(t, text))
 	equal(t, inspectOK(t, document), true)
 
 	// Key derivation: the public keys TypeScript wrote into the identity files.
@@ -78,7 +87,7 @@ func TestGoldenFromTypeScript(t *testing.T) {
 	directory := filepath.Join("testdata", "typescript")
 	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, DefaultFilename))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
-	equal(t, SerializeDocument(document), text)
+	equal(t, SerializeDocument(document), withCurrentSchemaURL(t, text))
 	equal(t, inspectOK(t, document), true)
 	equal(t, strings.Join(document.Environments.Keys(), ","), "2,10,production,development")
 	for i, name := range []string{"alice", "bob", "ci"} {

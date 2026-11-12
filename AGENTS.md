@@ -1,6 +1,6 @@
 ## Purpose
 
-This repository implements **msecrets v4**: encrypted secrets that live in the repository.
+This repository implements **msecrets**: encrypted secrets that live in the repository.
 
 - One committed JSON file (`msecrets.json`, format version 4)
 - Every value is an independent age file, encrypted to the recipients of its environment
@@ -36,7 +36,7 @@ Charm); the published npm packages must have **no npm dependencies**.
 `VERSION` is the version. `scripts/build-dist.sh` builds `dist/` (six platform binaries, the shim, the SDK);
 `scripts/publish-branches.sh` commits each package to its own git branch (`cli`, `cli-<os>-<arch>`, `ts-sdk`),
 tagged `<branch>-v<version>`. A push to `master` with a new `VERSION` does both (`.github/workflows/release.yml`).
-npm installs from git: `npm install -g --allow-git=all github:k18k/msecrets#cli`,
+Nothing is published to the npm registry. npm installs from git: `npm install -g --allow-git=all github:k18k/msecrets#cli`,
 `npm install --allow-git=root github:k18k/msecrets#ts-sdk`.
 
 ---
@@ -50,7 +50,7 @@ npm installs from git: `npm install -g --allow-git=all github:k18k/msecrets#cli`
 
 ### 2. The file is the compatibility contract
 
-- `msecrets.json` v4 must stay readable by every v4 release. Breaking it requires explicit instruction and a new `version`.
+- `msecrets.json` format version 4 must stay readable by every release, whatever the release version. Breaking it requires explicit instruction and a new `version`.
 - The file holds no runtime-only or machine-specific data. Keys and identity sources never come from the file.
 - The SDK takes the imported file (`createClient(file)`) and never searches for or reads it; its secret names
   type the result.
@@ -92,7 +92,7 @@ npm installs from git: `npm install -g --allow-git=all github:k18k/msecrets#cli`
 - Prefer real workflows: real files, real processes, real git; mocks only for I/O streams.
 - The C2SP age vectors (`internal/core/testdata/vectors`) must keep passing.
 - `internal/core/testdata/typescript` is a file written by the TypeScript implementation (4.0); it must stay readable
-  and re-serialize byte-identically.
+  and re-serialize byte-identically, apart from the `$schema` URL (4.x wrote the one of its npm registry package).
 - Hostile input is tested by seeded mutation tests (`MSECRETS_FUZZ_CASES` for more cases) and Go fuzz targets
   (`go test -fuzz=FuzzDecryptAge ./internal/core`).
 - Every user-visible behavior has a test; every bug fix gets a regression test.

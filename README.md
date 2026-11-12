@@ -73,9 +73,12 @@ See [AI agents](https://k18k.github.io/msecrets/ai/).
 
 ## Install
 
+msecrets is installed from this repository only. It is not published to the npm registry; the `@msecrets/*`
+packages there are the abandoned 4.0 and get no updates.
+
 npm 12 installs git dependencies only when allowed, hence `--allow-git`. The CLI needs `all`: `cli` pulls the
 prebuilt binary for your platform from the `cli-<os>-<arch>` branch (Linux, macOS, Windows; x64 and arm64). Pin a
-version with the tag, e.g. `github:k18k/msecrets#cli-v4.1.0`.
+version with the tag, e.g. `github:k18k/msecrets#cli-v5.0.0`.
 
 | Branch                                       |                                                                                  |
 | -------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -92,6 +95,7 @@ Go (version in `go.mod`) and Node.js 26, e.g. through [mise](https://mise.jdx.de
 go test ./...                                              # core, CLI, terminal UI
 MSECRETS_PLATFORMS= scripts/build-dist.sh && node --test sdk/test/   # the WebAssembly SDK
 scripts/build-dist.sh && scripts/test-install.sh           # every platform; npm install from git branches
+(cd docs && bundle install && bundle exec jekyll serve --destination ../.docs-site)   # preview the docs site
 ```
 
 OS keychain round-trips run with `MSECRETS_TEST_KEYCHAIN=1`.

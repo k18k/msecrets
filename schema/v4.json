@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json",
+  "$id": "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json",
   "title": "msecrets secrets file (v4)",
   "description": "The committed msecrets.json file: recipients, environments, and age-encrypted, signed secret values. Edit it with the msecrets CLI; values cannot be written by hand.",
   "type": "object",

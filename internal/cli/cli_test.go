@@ -402,7 +402,7 @@ func TestUsage(t *testing.T) {
 	expectMatch(t, user.run(t, []string{"set", "--help"}).stdout, `Examples:`)
 	expectMatch(t, user.run(t, []string{"help", "env", "add"}).stdout, `Usage: msecrets env add <NAME>`)
 	expectMatch(t, user.run(t, []string{"env", "--help"}).stdout, `env rm <NAME>`)
-	if got := user.run(t, []string{"--version"}).stdout; got != "msecrets 4.1.0\n" {
+	if got := user.run(t, []string{"--version"}).stdout; got != "msecrets 5.0.0\n" {
 		t.Fatalf("%q", got)
 	}
 	ok(t, user.run(t, nil)) // no terminal: prints help

@@ -22,7 +22,7 @@ const (
 	// DefaultFilename is the name of the secrets file.
 	DefaultFilename = "msecrets.json"
 	// SchemaURL is written as "$schema" into every file.
-	SchemaURL = "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json"
+	SchemaURL = "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json"
 	// MaxFileSize bounds parsing and signature checks of untrusted files.
 	MaxFileSize = 64 * 1024 * 1024
 )

@@ -7,7 +7,7 @@ lead: msecrets.json is plain JSON with a published schema. It holds recipients, 
 permalink: /file-format/
 hero_shell: |-
   {
-    "$schema": "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json",
+    "$schema": "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json",
     "version": 4,
     "id": "…",
     "recipients": {},
@@ -20,7 +20,7 @@ hero_shell: |-
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json",
+  "$schema": "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json",
   "version": 4,
   "id": "6f1c0b4f8c0e4a35a1b7f6e2d9c3a8b0",
   "recipients": {
@@ -44,7 +44,7 @@ hero_shell: |-
 }
 ```
 
-The [JSON schema](https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json), published with `@msecrets/ts-sdk`, gives editors completion and validation.
+The [JSON schema](https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json), served from this repository, gives editors completion and validation.
 
 ## Fields
 
