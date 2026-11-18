@@ -81,7 +81,7 @@ packages there are the abandoned 4.0 and get no updates.
 
 npm 12 installs git dependencies only when allowed, hence `--allow-git`. The CLI needs `all`: `cli` pulls the
 prebuilt binary for your platform from the `cli-<os>-<arch>` branch (Linux, macOS, Windows; x64 and arm64). Pin a
-version with the tag, e.g. `github:k18k/msecrets#cli-v6.0.0`.
+version with the tag, e.g. `github:k18k/msecrets#cli-v6.0.1`.
 
 | Branch                                       |                                                                                  |
 | -------------------------------------------- | -------------------------------------------------------------------------------- |
