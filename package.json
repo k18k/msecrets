@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/ts-sdk",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "Runtime SDK for msecrets: verify and decrypt the secrets committed in msecrets.json. Zero dependencies.",
   "keywords": [
     "age",
@@ -37,6 +37,7 @@
       "require": "./index.cjs"
     },
     "./schema/v4.json": "./schema/v4.json",
+    "./schema/v6.json": "./schema/v6.json",
     "./package.json": "./package.json"
   },
   "engines": {
