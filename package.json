@@ -1,6 +1,6 @@
 {
   "name": "@msecrets/cli",
-  "version": "5.0.0",
+  "version": "6.0.0",
   "description": "msecrets CLI and terminal UI: encrypted secrets that live in your repository.",
   "homepage": "https://k18k.github.io/msecrets/",
   "bugs": "https://github.com/k18k/msecrets/issues",
@@ -17,11 +17,11 @@
     "node": ">=20"
   },
   "optionalDependencies": {
-    "@msecrets/cli-darwin-arm64": "github:k18k/msecrets#9c4174c7bcd3089d0c07dbc885c817cb3c124fbf",
-    "@msecrets/cli-darwin-x64": "github:k18k/msecrets#8611b473555f6ba738b604318b17e539e7d51f67",
-    "@msecrets/cli-linux-arm64": "github:k18k/msecrets#b13c8a83b56e80ff9240eee37f364b8857941891",
-    "@msecrets/cli-linux-x64": "github:k18k/msecrets#4a2230c4b37d407c05e958ff8b3cd0ed57fd4353",
-    "@msecrets/cli-win32-arm64": "github:k18k/msecrets#e0c0b22076a06e6d0d40546873546bdadd961c89",
-    "@msecrets/cli-win32-x64": "github:k18k/msecrets#2020e9d8df0d43fde1441d353e46d275da7f11d3"
+    "@msecrets/cli-darwin-arm64": "github:k18k/msecrets#88a9628b613d977a686422d49dc0e068d769c26d",
+    "@msecrets/cli-darwin-x64": "github:k18k/msecrets#60358ebce06ff8ba844116c0d2881b2a8d644f6f",
+    "@msecrets/cli-linux-arm64": "github:k18k/msecrets#484d65c67ed371c6adf797eaf99a06642b5118e9",
+    "@msecrets/cli-linux-x64": "github:k18k/msecrets#e0ce3a163d41ee5383983100d413ca38706d2313",
+    "@msecrets/cli-win32-arm64": "github:k18k/msecrets#46603ce9ea1bdb13a21f7f0472dd353353ffda96",
+    "@msecrets/cli-win32-x64": "github:k18k/msecrets#891120e758705c03af6b1c8fec3211036f1dbcce"
   }
 }
