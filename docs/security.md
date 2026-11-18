@@ -13,10 +13,32 @@ permalink: /security/
   of its environment: X25519, or ML-KEM-768 + X25519 (X-Wing) for post-quantum keys, with ChaCha20-Poly1305 and
   HKDF-SHA-256. Encryption is the reference Go implementation, [`filippo.io/age`](https://github.com/FiloSottile/age),
   and passes the complete [C2SP age test vector suite](https://github.com/C2SP/CCTV/tree/main/age).
+- **Padding:** the encrypted payload is the value followed by zero bytes, up to 64 bytes or the next power of two
+  (values never contain NUL, so the first zero byte ends the value). Readers reject any other padding.
 - **Signatures:** every value is signed with Ed25519 by a recipient of its environment. The signature covers the
-  file id, the secret name, the environment, the digest of the recipient keys, and the ciphertext.
-- **Primitives:** the Go standard library, `filippo.io/age`, and `golang.org/x/crypto` (SSH keys). The published
-  packages have no npm dependencies.
+  file id, the secret name, the environment, the digest of the recipient keys, and the ciphertext. Plain values
+  are signed the same way over their text, in a separate signature domain.
+- **Password members:** the key is scrypt(password, salt) with N = 2^18, r = 8, p = 1 (256 MiB, about a second per
+  guess), used as an age secret key. The salt is random and stored with the recipient; the password is never stored.
+- **Primitives:** the Go standard library, `filippo.io/age`, and `golang.org/x/crypto` (SSH keys, scrypt). The
+  published packages have no npm dependencies.
+
+## What stays public
+
+Anyone who can read the repository sees, without any key:
+
+- the names of secrets, environments, and recipients, descriptions, who can read each environment, and who
+  signed each value;
+- the full text of **plain values** (`msecrets set NAME --plain`): use them only for configuration that is not
+  secret;
+- the **size range** of each encrypted value: up to 63 bytes, 64 to 127, 128 to 255, and so on. Values written by
+  msecrets 5 and earlier were not padded and show their exact length, in the file and in git history, until they
+  are set again; `msecrets sync` does not re-encrypt current values, so set them again to pad them. Padding costs at
+  most twice the value size;
+- when a value changed, and how often (git history);
+- the public key of every recipient, including **password members**: anyone can try to guess their password
+  offline. msecrets requires at least 16 characters and generates 100-bit passwords by default; a weak password
+  makes everything the member can read only as safe as that password.
 
 ## What is protected
 

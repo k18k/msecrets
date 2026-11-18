@@ -2,9 +2,11 @@
 
 This repository implements **msecrets**: encrypted secrets that live in the repository.
 
-- One committed JSON file (`msecrets.json`, format version 4)
-- Every value is an independent age file, encrypted to the recipients of its environment
+- One committed JSON file (`msecrets.json`, format version 6; version 4 files are still read)
+- Every value is an independent age file, padded and encrypted to the recipients of its environment, or, for a
+  plain secret, plain text
 - Every value is signed (Ed25519) by a recipient of its environment
+- A recipient is a key, or a password member: a key derived from a password and a salt in the file
 - No server, no KMS; the published packages have no npm dependencies
 
 ---
@@ -16,8 +18,9 @@ Charm); the published npm packages must have **no npm dependencies**.
 
 - `internal/core`: all logic, on `filippo.io/age` and `golang.org/x/crypto`
   - `keys.go`, `age.go`, `ssh.go`, `bech32.go`: identities and public keys (`msecrets1…`, `age1…`, `age1pq1…`, `ssh-ed25519`)
-  - `document.go`, `json.go`, `map.go`: the v4 file format, validation, byte-identical canonical serialization
-  - `values.go`: sealing, signatures, verification
+  - `document.go`, `json.go`, `map.go`: the v6 file format (and reading v4), validation, canonical serialization
+  - `values.go`: sealing, padding, signatures, verification
+  - `password.go`: password members (scrypt key derivation, generated passwords)
   - `status.go`: completeness, drift, and signature inspection (public data only)
   - `operations.go`: all mutations, as transactions on a document copy
   - `store.go`: file discovery and atomic, conflict-checked writes
@@ -50,17 +53,19 @@ Nothing is published to the npm registry. npm installs from git: `npm install -g
 
 ### 2. The file is the compatibility contract
 
-- `msecrets.json` format version 4 must stay readable by every release, whatever the release version. Breaking it requires explicit instruction and a new `version`.
+- `msecrets.json` format versions 4 and 6 must stay readable by every later release. msecrets writes version 6. Breaking it requires explicit instruction and a new `version` (format 6 shipped with msecrets 6; there is no 5).
 - The file holds no runtime-only or machine-specific data. Keys and identity sources never come from the file.
 - The SDK takes the imported file (`createClient(file)`) and never searches for or reads it; its secret names
   type the result.
-- Keep `schema/v4.json` in sync with `document.go` (a test enforces the name and key patterns).
+- Keep `schema/v6.json` (and `schema/v4.json`, for version 4 files) in sync with `document.go` (a test enforces the name, key, and salt patterns).
 
 ### 3. Security invariants
 
 - Never decrypt or re-encrypt a value whose signature does not verify; never re-sign without verifying first.
 - Revocation must re-encrypt every affected value or fail (unless the caller explicitly allows incomplete).
 - Writers must be recipients of the environment with a signing key; machine keys from `--generate` are read-only.
+- An encrypted secret never becomes a plain one. Values never contain NUL (padding depends on it). Password
+  members need a minimum password length; never lower the scrypt cost of existing members.
 - Never put secrets on command lines; pass them through stdin. Scrub identity variables before running user code.
 - Parsers of untrusted input (age headers, keys, files) are strict and reject non-canonical encodings.
 - Never print untrusted text with control characters (terminal escape injection): validate or sanitize it.
@@ -92,7 +97,8 @@ Nothing is published to the npm registry. npm installs from git: `npm install -g
 - Prefer real workflows: real files, real processes, real git; mocks only for I/O streams.
 - The C2SP age vectors (`internal/core/testdata/vectors`) must keep passing.
 - `internal/core/testdata/typescript` is a file written by the TypeScript implementation (4.0); it must stay readable
-  and re-serialize byte-identically, apart from the `$schema` URL (4.x wrote the one of its npm registry package).
+  and re-serialize byte-identically, apart from the `$schema` URL (4.x wrote the one of its npm registry package)
+  and the version (4 becomes 6).
 - Hostile input is tested by seeded mutation tests (`MSECRETS_FUZZ_CASES` for more cases) and Go fuzz targets
   (`go test -fuzz=FuzzDecryptAge ./internal/core`).
 - Every user-visible behavior has a test; every bug fix gets a regression test.

@@ -59,8 +59,8 @@ In the Checks view, `enter` jumps to the problem.
 
 | Command                                                                          |                                                                                                       |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `msecrets init [--env a,b] [--name NAME] [--store WHERE] [--pq]` | Create `msecrets.json` with you as the first recipient. Default environments: development, production. `--store`: `keychain` (default), `file`, or `print`. |
-| `msecrets join [--env NAME]`                                                     | Add yourself to an existing file. Commit it; a member then runs `msecrets sync`.                      |
+| `msecrets init [--env a,b] [--name NAME] [--store WHERE] [--password] [--pq]` | Create `msecrets.json` with you as the first recipient. Default environments: development, production. It says which key it uses; without one, it asks on a terminal where to keep a new key. `--store`: `keychain` (default), `file`, or `print`; `--password`: a [password member](../identities/#password-members). |
+| `msecrets join [--env NAME] [--store WHERE] [--password]`                        | Add yourself to an existing file. Commit it; a member then runs `msecrets sync`.                      |
 | `msecrets whoami`                                                                | Your keys, where they come from, and what they can access.                                            |
 | `msecrets identity new`, `show`, `use SOURCE`, `export` | Create, show, configure, or export your keys. See [Keys](../identities/). |
 
@@ -70,7 +70,7 @@ In the Checks view, `enter` jumps to the problem.
 | ----------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | `msecrets ls [--json]`                                      | Every secret in every environment, with problems.                                      |
 | `msecrets get NAME`                                         | Print a value.                                                                         |
-| `msecrets set NAME [VALUE] [--env NAME]… [--all] [-d TEXT]` | Encrypt and store a value. Without VALUE it prompts (hidden) or reads stdin.           |
+| `msecrets set NAME [VALUE] [--env NAME]… [--all] [-d TEXT] [--plain]` | Encrypt and store a value. Without VALUE it prompts (hidden) or reads stdin. `--plain` creates a plain secret: configuration stored readable, signed but not encrypted, that `get`, `run`, `export`, and the SDK read without a key. |
 | `msecrets unset NAME [--env NAME]`                          | Remove a value from an environment.                                                    |
 | `msecrets rm NAME`, `msecrets mv NAME NEW`                  | Delete or rename a secret.                                                             |
 | `msecrets describe NAME [TEXT]`                             | Document a secret.                                                                     |
@@ -83,8 +83,8 @@ Secret names are environment variable names (`[A-Za-z_][A-Za-z0-9_]*`), so every
 | Command                                                                                  |                                                                                                         |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `msecrets env ls`, `add NAME [--from ENV] [--recipients a,b]`, `rm NAME`, `mv NAME NEW` | Manage environments. A new environment makes every unscoped secret _missing_ there until it is set.     |
-| `msecrets recipient add NAME KEY` (or `github:USER`, or `--generate`) `[--env NAME]…`             | Add a person (their `msecrets1…` key) or a machine (`--generate` prints a new read-only identity once). |
-| `msecrets recipient ls`, `rm NAME`, `mv NAME NEW`, `rotate NAME KEY` (or `--generate`)     | List, remove (revokes everything), rename, or replace a key.                                            |
+| `msecrets recipient add NAME KEY` (or `github:USER`, `--generate`, or `--password`) `[--env NAME]…`             | Add a person (their `msecrets1…` key), a machine (`--generate` prints a new read-only identity once), or a password member (`--password`: typed, or generated and printed once). |
+| `msecrets recipient ls`, `rm NAME`, `mv NAME NEW`, `rotate NAME KEY` (or `--generate`, or `--password`)     | List, remove (revokes everything), rename, or replace a key; `rotate NAME --password` changes a password. |
 | `msecrets grant RECIPIENT ENV…`                                                          | Give access and re-encrypt what you can read.                                                           |
 | `msecrets revoke RECIPIENT ENV…`                                                         | Take access away and re-encrypt without them; lists what to rotate.                                     |
 | `msecrets sync [--env NAME]`                                                             | Re-encrypt values whose recipients changed.                                                             |

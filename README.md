@@ -69,7 +69,10 @@ See [AI agents](https://k18k.github.io/msecrets/ai/).
 - **Ephemeral runtimes:** read-only machine keys through `MSECRETS_IDENTITY` or `/run/secrets`, scrubbed before your
   code runs.
 - **Post-quantum ready:** optional ML-KEM-768 + X25519 keys for secrets that stay in git history forever.
-- **Standard and portable:** values are age files; `base64 -d | age -d` decrypts them without msecrets.
+- **Lengths hidden:** values are padded to size buckets, so the file shows a range, not the length of a secret.
+- **Passwords or plain text when you want them:** a teammate can unlock with a password instead of a key file
+  (`--password`), and configuration that is not secret can live next to the secrets, signed but readable (`--plain`).
+- **Standard and portable:** values are age files; `base64 -d | age -d | tr -d '\0'` decrypts them without msecrets.
 
 ## Install
 
@@ -78,7 +81,7 @@ packages there are the abandoned 4.0 and get no updates.
 
 npm 12 installs git dependencies only when allowed, hence `--allow-git`. The CLI needs `all`: `cli` pulls the
 prebuilt binary for your platform from the `cli-<os>-<arch>` branch (Linux, macOS, Windows; x64 and arm64). Pin a
-version with the tag, e.g. `github:k18k/msecrets#cli-v5.0.0`.
+version with the tag, e.g. `github:k18k/msecrets#cli-v6.0.0`.
 
 | Branch                                       |                                                                                  |
 | -------------------------------------------- | -------------------------------------------------------------------------------- |

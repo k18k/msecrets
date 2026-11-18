@@ -61,6 +61,10 @@ The SDK loads the private key from the first of these that is set:
 4. `/run/secrets/msecrets_identity` (Docker, Swarm, Compose) and `$CREDENTIALS_DIRECTORY/msecrets_identity` (systemd).
 5. Only if none of those is set: the developer's msecrets config, so local development needs no setup.
 
+A [password member]({{ '/identities/' | relative_url }}#password-members) sets `MSECRETS_PASSPHRASE` instead: when
+none of the loaded keys belongs to the file, the SDK derives the member's key from it (read once, then deleted).
+An environment whose secrets are all plain (`msecrets set NAME --plain`) needs no key at all.
+
 To be explicit, pass `identities`:
 
 ```ts

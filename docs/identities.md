@@ -31,11 +31,16 @@ and `msecrets check` warns about it.
 
 ## For developers
 
-`msecrets init`, `join`, and `identity new` create a key and store it in the OS keychain: the macOS Keychain, the
-Windows Credential Manager, or the Linux Secret Service (`secret-tool`). Where none is available they fall back to a
-private file in your config directory (`--passphrase` encrypts it). They never replace a key that is already stored
-there: it may be the only copy that decrypts your secrets. Use `--account NAME` for another key, or
-`msecrets identity use keychain:default` to use the existing one.
+When you already have a key, `msecrets init` and `join` use it and say which one and where it comes from
+(`msecrets whoami` lists them all). Without one, they ask on a terminal how you want to unlock secrets: a new key in
+the OS keychain, a passphrase-protected key file, a [password](#password-members), or a key printed once for your
+password manager. `--store` and `--password` choose without asking.
+
+`msecrets init`, `join`, and `identity new` store a new key in the OS keychain: the macOS Keychain, the Windows
+Credential Manager, or the Linux Secret Service (`secret-tool`). Where none is available (for example in WSL) they
+fall back to a private file in your config directory (`--passphrase` encrypts it), and say so. They never replace a
+key that is already stored there: it may be the only copy that decrypts your secrets. Use `--account NAME` for
+another key, or `msecrets identity use keychain:default` to use the existing one.
 
 To use a password manager instead, put the key there and point msecrets at it:
 
@@ -58,6 +63,24 @@ msecrets whoami                          # shows which sources were used and wha
 The sources are saved in `config.json` in your config directory (`$XDG_CONFIG_HOME/msecrets` or `~/.config/msecrets`;
 `%APPDATA%\msecrets` on Windows; `MSECRETS_CONFIG_DIR` overrides it). They never come from the repository, because a
 repository must not be able to run commands on your machine.
+
+## Password members
+
+A password member has no key file at all: the key is derived from a password and a random salt stored with the
+recipient in `msecrets.json`, so typing the password unlocks it on any machine.
+
+```bash
+msecrets init --password                               # or: msecrets join --password
+msecrets recipient add dana --password --env development   # for someone else; prints a generated password once
+msecrets recipient rotate dana --password              # change the password (re-encrypts dana's values)
+```
+
+msecrets asks for the password when it needs a key and none of your loaded keys belongs to the file (Enter skips),
+and reads `MSECRETS_PASSPHRASE` without a terminal, also in the SDK. A new password needs at least 16 characters;
+press Enter at the prompt for a generated one (`xxxxx-xxxxx-xxxxx-xxxxx`, 100 bits). The public key is in the
+repository, so anyone can try to guess the password offline, at about a second per guess: use a generated password,
+or a long passphrase, and keep it in a password manager. Forgetting it loses the key; another member can give you a
+new one with `msecrets recipient rotate NAME --password`.
 
 ## For machines
 

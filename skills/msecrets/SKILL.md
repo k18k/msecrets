@@ -108,7 +108,7 @@ The SDK throws `MsecretsError`; `isMsecretsError(error, code)` checks the `code`
 | Code              | Meaning                                                  | What to do                                                                                                    |
 | ----------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `NOT_FOUND`       | The environment is incomplete, or does not exist         | Run `msecrets ls` to see what is missing; ask a person to set it                                          |
-| `IDENTITY_SOURCE` | No private key found                                     | Developer machine: `msecrets init` (new file) or `msecrets join`. Deployment: set `MSECRETS_IDENTITY` |
+| `IDENTITY_SOURCE` | No private key found                                     | Developer machine: `msecrets init` (new file) or `msecrets join`; password members set `MSECRETS_PASSPHRASE`. Deployment: set `MSECRETS_IDENTITY` |
 | `ACCESS_DENIED`   | This key is not a recipient of the environment           | A member grants access: `msecrets grant NAME ENV` (or `msecrets sync` after a `join`)                 |
 | `SIGNATURE`       | A value was changed or written by someone without access | Stop. Do not work around it; tell a person, and review the history of `msecrets.json`                         |
 | `INVALID_FILE`    | `msecrets.json` is malformed, often after a bad merge    | Restore it from git; `msecrets git setup` prevents merge conflicts                                        |
@@ -150,6 +150,12 @@ no person has to know, like a random session key, can be generated and piped str
 node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('base64url'))" \
   | msecrets set SESSION_SECRET --env development
 ```
+
+Configuration that is not secret (a public URL, a feature flag, a region) can be a plain secret: stored readable in
+`msecrets.json`, signed, and read by the SDK and `msecrets run` without a key. Because it is not secret, you may set
+it yourself when the user asks: `msecrets set API_URL https://api.example.com --plain --env production`. Never use
+`--plain` for credentials, tokens, passwords, or anything a person would not paste into a public issue; when unsure,
+leave it encrypted.
 
 Use a separate value per environment. Structural changes do not reveal values and are fine when the user asks for
 them: `msecrets mv OLD NEW` (then update the code; the types point at every use), `msecrets rm NAME`,
@@ -207,7 +213,10 @@ jobs:
 
 When someone asks how to use it, point them to the step they need:
 
-- **Start a project:** `msecrets init`. Creates `msecrets.json` and their key, stored in the OS keychain.
+- **Start a project:** `msecrets init`. Creates `msecrets.json`; it asks where their key lives (OS keychain, key
+  file, a password, or printed for a password manager) and says which key it used.
+- **No key file at all:** `msecrets init --password` or `msecrets join --password`; msecrets asks for the password
+  when needed (or reads `MSECRETS_PASSPHRASE`). `msecrets recipient add NAME --password` adds someone that way.
 - **Join a project:** `msecrets join`, commit and push; a member then runs `msecrets sync` and pushes.
 - **See and edit everything:** `msecrets` opens the terminal UI (secrets × environments; `?` shows the keys).
 - **Set a value:** `msecrets set NAME`. **Run the app with secrets:** `msecrets run -- npm run dev`.
