@@ -88,6 +88,9 @@ func storeIdentity(c *Context, identity *core.Identity, target, account string, 
 	if account == "" {
 		account = "default"
 	}
+	if err := core.RequireAccountName(account); err != nil {
+		return "", err
+	}
 	if target == "print" {
 		_, err := fmt.Fprint(c.Stdout, core.FormatIdentityFile(identity, ""))
 		return "", err

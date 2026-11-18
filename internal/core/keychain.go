@@ -145,10 +145,19 @@ func newKeychainCommand(h Host, action, account, secret string) (keychainCommand
 
 var keychainAccount = regexp.MustCompile(`^[a-z0-9][a-z0-9._@+-]{0,62}$`)
 
+// RequireAccountName returns a USAGE error unless account is a valid name for a stored identity:
+// a keychain account, and part of the identity file name, so it never contains a path separator.
+func RequireAccountName(account string) error {
+	if !keychainAccount.MatchString(account) {
+		return newError(CodeUsage, "Invalid account name \"%s\": use lowercase letters, digits, '.', '_', '@', '+', and '-'", sanitize(account))
+	}
+	return nil
+}
+
 // runKeychain runs a keychain action; found is false when the item does not exist.
 func runKeychain(h Host, action, account, secret string) (output string, found bool, err error) {
-	if !keychainAccount.MatchString(account) {
-		return "", false, newError(CodeUsage, "Invalid keychain account name \"%s\"", sanitize(account))
+	if err := RequireAccountName(account); err != nil {
+		return "", false, err
 	}
 	command, err := newKeychainCommand(h, action, account, secret)
 	if err != nil {

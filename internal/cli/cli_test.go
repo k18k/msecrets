@@ -450,3 +450,20 @@ func TestCompletion(t *testing.T) {
 	expectMatch(t, alice.run(t, []string{"__complete", "set", "X", "--env", ""}).stdout, `(?m)^production$`)
 	expectMatch(t, alice.run(t, []string{"__complete", "grant", "alice", ""}).stdout, `(?m)^development$`)
 }
+
+// Regression: the account names the key file, so it must not reach outside the config directory.
+func TestAccountNamesCannotBePaths(t *testing.T) {
+	ws := newWorkspace(t)
+	alice := ws.person("alice")
+	for _, account := range []string{"../escaped", "a/b", `a\b`, "Upper"} {
+		refused := alice.run(t, []string{"identity", "new", "--store", "file", "--account", account})
+		expectCode(t, refused, 2)
+		expectMatch(t, refused.stderr, `Invalid account name`)
+	}
+	matches, _ := filepath.Glob(filepath.Join(ws.root, "*escaped*"))
+	if len(matches) > 0 {
+		t.Fatal(matches)
+	}
+	ok(t, alice.run(t, []string{"identity", "new", "--store", "file", "--account", "work"}))
+	readFile(t, filepath.Join(alice.config, "identity-work.txt"))
+}
