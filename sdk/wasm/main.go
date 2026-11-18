@@ -385,6 +385,54 @@ func applicable(text, explicit string) (*core.Document, string, []string, error)
 	return document, choice.Name, names, nil
 }
 
+// identitiesFor loads the identities that open the named secrets: none when they are all plain.
+// A password member unlocks with MSECRETS_PASSPHRASE when no loaded key is a member of the file.
+func identitiesFor(document *core.Document, names []string, descriptors js.Value) ([]*core.Identity, error) {
+	encrypted := false
+	for _, name := range names {
+		secret, _ := document.Secrets.Get(name)
+		encrypted = encrypted || !secret.Plain
+	}
+	if !encrypted {
+		return nil, nil
+	}
+	// Read before the sources run: they remove it from the environment.
+	password, havePassword := host{}.LookupEnv(core.PassphraseVariable)
+	var envPassphrase func(string) (string, error)
+	sources := []core.IdentitySource{}
+	for index := range descriptors.Length() {
+		source, err := identitySource(descriptors.Index(index), &envPassphrase)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, source)
+	}
+	loaded, err := core.LoadIdentities(sources)
+	if err != nil {
+		return nil, err
+	}
+	identities := make([]*core.Identity, len(loaded))
+	for index, entry := range loaded {
+		identities[index] = entry.Identity
+	}
+	members, err := core.Members(document, identities)
+	if err != nil {
+		return nil, err
+	}
+	if havePassword && len(members) == 0 && len(core.PasswordMembers(document)) > 0 {
+		host{}.Unsetenv(core.PassphraseVariable)
+		member, err := core.UnlockPassword(document, password, "")
+		if err != nil {
+			return nil, err
+		}
+		identities = append(identities, member.Identity)
+	}
+	if len(identities) == 0 {
+		return nil, &core.Error{Code: core.CodeIdentitySource, Message: "No msecrets identity found. Set MSECRETS_IDENTITY (or MSECRETS_IDENTITY_FILE / MSECRETS_IDENTITY_SOURCE), mount /run/secrets/msecrets_identity, or run `msecrets init` on a developer machine; password members set MSECRETS_PASSPHRASE"}
+	}
+	return identities, nil
+}
+
 // environment(fileJSON, env) returns {environment, names}.
 func environment(args []js.Value) (any, error) {
 	_, name, names, err := applicable(asString(args[0]), asString(args[1]))
@@ -397,25 +445,9 @@ func reveal(args []js.Value) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	var envPassphrase func(string) (string, error)
-	sources := []core.IdentitySource{}
-	for index := range args[2].Length() {
-		source, err := identitySource(args[2].Index(index), &envPassphrase)
-		if err != nil {
-			return nil, err
-		}
-		sources = append(sources, source)
-	}
-	loaded, err := core.LoadIdentities(sources)
+	identities, err := identitiesFor(document, names, args[2])
 	if err != nil {
 		return nil, err
-	}
-	if len(loaded) == 0 {
-		return nil, &core.Error{Code: core.CodeIdentitySource, Message: "No msecrets identity found. Set MSECRETS_IDENTITY (or MSECRETS_IDENTITY_FILE / MSECRETS_IDENTITY_SOURCE), mount /run/secrets/msecrets_identity, or run `msecrets init` on a developer machine"}
-	}
-	identities := make([]*core.Identity, len(loaded))
-	for index, entry := range loaded {
-		identities[index] = entry.Identity
 	}
 	values := []any{}
 	for _, secret := range names {

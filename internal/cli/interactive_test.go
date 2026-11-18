@@ -141,7 +141,7 @@ func TestKeychainStorage(t *testing.T) {
 	alice := ws.person("alice")
 	init := alice.run(t, []string{"init", "--name", "alice"}, env)
 	ok(t, init)
-	expectMatch(t, init.stderr, `Created your identity \(OS keychain\)`)
+	expectMatch(t, init.stderr, `Created your key msecrets1\S+ \(OS keychain\)`)
 	if got := readFile(t, filepath.Join(alice.config, "config.json")); got != "{\n  \"identities\": [\n    \"keychain:default\"\n  ]\n}\n" {
 		t.Fatalf("%q", got)
 	}

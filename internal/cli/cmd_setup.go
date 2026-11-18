@@ -17,8 +17,9 @@ var initCommand = command{
 		"msecrets init",
 		"msecrets init --env development,staging,production",
 		"msecrets init --store file --passphrase   # an encrypted identity file instead of the OS keychain",
+		"msecrets init --password                  # a password you type instead of a stored key",
 	},
-	options: []option{optName, optStore, optPQ, optPassphrase},
+	options: []option{optName, optStore, optPQ, optPassphrase, optPassword},
 	run: func(c *Context, _ []string, f flags) (int, error) {
 		path := c.targetPath()
 		if _, err := os.Stat(path); err == nil {
@@ -42,17 +43,13 @@ var initCommand = command{
 		if err := core.RequireName(core.RecipientName, name); err != nil {
 			return 0, err
 		}
-		store, err := parseStoreTarget(f.String("store"))
-		if err != nil {
-			return 0, err
-		}
-		identity, err := ensureIdentity(c, store, f.Bool("pq"), f.Bool("passphrase"))
+		member, err := ensureIdentity(c, f, "\""+name+"\"")
 		if err != nil {
 			return 0, err
 		}
 
 		document := core.CreateDocument()
-		if _, err := core.AddRecipient(document, name, identity.PublicKey.Token, ""); err != nil {
+		if err := addMember(document, name, member); err != nil {
 			return 0, err
 		}
 		for _, environment := range environments {
@@ -66,6 +63,7 @@ var initCommand = command{
 
 		display := c.DisplayPath(path)
 		c.Success(fmt.Sprintf("Created %s (%s); you are recipient \"%s\"", display, strings.Join(environments, ", "), name))
+		finishMember(c, member, name)
 		next := func(command, comment string) string {
 			return fmt.Sprintf("  %-37s%s", command, c.Err.Dim("# "+comment))
 		}
@@ -80,24 +78,31 @@ var initCommand = command{
 }
 
 var joinCommand = command{
-	name:     "join",
-	summary:  "Add yourself as a recipient of an existing secrets file",
-	examples: []string{"msecrets join", "msecrets join --env development   # ask for access to development right away"},
-	options:  []option{optName, optStore, optPQ, optPassphrase},
+	name:    "join",
+	summary: "Add yourself as a recipient of an existing secrets file",
+	examples: []string{
+		"msecrets join",
+		"msecrets join --env development   # ask for access to development right away",
+		"msecrets join --password          # a password you type instead of a stored key",
+	},
+	options: []option{optName, optStore, optPQ, optPassphrase, optPassword},
 	run: func(c *Context, _ []string, f flags) (int, error) {
 		document, err := c.Document()
 		if err != nil {
 			return 0, err
 		}
-		store, err := parseStoreTarget(f.String("store"))
+		name := f.String("name")
+		if name == "" {
+			name = defaultRecipientName(c.Cwd)
+		}
+		if err := core.RequireName(core.RecipientName, name); err != nil {
+			return 0, err
+		}
+		member, err := ensureIdentity(c, f, "\""+name+"\"")
 		if err != nil {
 			return 0, err
 		}
-		identity, err := ensureIdentity(c, store, f.Bool("pq"), f.Bool("passphrase"))
-		if err != nil {
-			return 0, err
-		}
-		existing, err := core.Members(document, []*core.Identity{identity})
+		existing, err := core.Members(document, []*core.Identity{member.identity})
 		if err != nil {
 			return 0, err
 		}
@@ -107,16 +112,9 @@ var joinCommand = command{
 			return 0, nil
 		}
 
-		name := f.String("name")
-		if name == "" {
-			name = defaultRecipientName(c.Cwd)
-		}
-		if err := core.RequireName(core.RecipientName, name); err != nil {
-			return 0, err
-		}
 		environments := f.List("env")
 		if _, err := update(c, func(current *core.Document) (any, error) {
-			if _, err := core.AddRecipient(current, name, identity.PublicKey.Token, ""); err != nil {
+			if err := addMember(current, name, member); err != nil {
 				return nil, err
 			}
 			for _, environment := range environments {
@@ -131,6 +129,7 @@ var joinCommand = command{
 			return 0, err
 		}
 
+		finishMember(c, member, name)
 		if len(environments) > 0 {
 			c.Success(fmt.Sprintf("Added you as recipient \"%s\" of %s", name, strings.Join(environments, ", ")))
 			c.Note("Commit and push this change. Once it is reviewed, a member runs `msecrets sync` to re-encrypt the values for you.")

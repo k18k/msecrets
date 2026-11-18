@@ -34,6 +34,9 @@ var lsCommand = command{
 				if secret.Description != "" {
 					entry.add("description", secret.Description)
 				}
+				if secret.Plain {
+					entry.add("plain", true)
+				}
 				values := orderedObject{}
 				for _, cell := range report.Cells {
 					if cell.Secret == name {
@@ -65,6 +68,9 @@ var lsCommand = command{
 		rows := [][]string{append(header, c.Out.Bold("DESCRIPTION"))}
 		for name, secret := range document.Secrets.All() {
 			row := []string{name}
+			if secret.Plain {
+				row[0] += c.Out.Dim(" (plain)")
+			}
 			for _, environment := range environments {
 				row = append(row, cellGlyph(c, cellState(report, name, environment)))
 			}
@@ -139,9 +145,12 @@ var getCommand = command{
 		if err != nil {
 			return 0, err
 		}
-		identities, err := c.RequireIdentities()
-		if err != nil {
-			return 0, err
+		// Plain values are only verified, so they need no key.
+		var identities []*core.Identity
+		if secret, ok := document.Secrets.Get(args[0]); !ok || !secret.Plain {
+			if identities, err = c.RequireIdentities(); err != nil {
+				return 0, err
+			}
 		}
 		environment, err := singleEnvironment(c, document, f)
 		if err != nil {
@@ -159,7 +168,7 @@ var getCommand = command{
 	},
 }
 
-func readValue(c *Context, name string, environments []string, args []string) (string, error) {
+func readValue(c *Context, name string, environments []string, args []string, plain bool) (string, error) {
 	if len(args) > 1 {
 		return args[1], nil
 	}
@@ -174,22 +183,27 @@ func readValue(c *Context, name string, environments []string, args []string) (s
 		}
 		return text, nil
 	}
+	if plain {
+		return c.Ask(fmt.Sprintf("Plain text value for %s (%s; visible to anyone with the repository): ", name, strings.Join(environments, ", ")), false)
+	}
 	return c.Ask(fmt.Sprintf("Value for %s (%s): ", name, strings.Join(environments, ", ")), true)
 }
 
 var setCommand = command{
 	name:    "set",
 	args:    "<NAME> [VALUE]",
-	summary: "Encrypt and store a value (prompts, or reads stdin, when VALUE is omitted)",
+	summary: "Encrypt and store a value (prompts, or reads stdin, when VALUE is omitted); --plain stores configuration as plain text",
 	examples: []string{
 		"msecrets set DATABASE_URL                     # prompts; the value is not shown",
 		"msecrets set DATABASE_URL --env production",
 		"msecrets set API_KEY --all -d \"Payments provider\"",
 		"openssl rand -base64 32 | msecrets set SESSION_SECRET",
+		"msecrets set API_URL https://api.example.com --plain --env production   # not secret: signed, not encrypted",
 	},
 	options: []option{
 		{name: "all", description: "Set the value in every environment the secret applies to"},
 		{name: "description", short: "d", takesValue: true, placeholder: "TEXT", description: "Describe the secret"},
+		{name: "plain", description: "Create the secret as plain text: readable by anyone with the repository, still signed"},
 	},
 	complete: completeFirst(secretNames),
 	run: func(c *Context, args []string, f flags) (int, error) {
@@ -226,18 +240,25 @@ var setCommand = command{
 				return 0, err
 			}
 		}
+		plain := f.Bool("plain")
+		if existing, ok := document.Secrets.Get(name); ok {
+			if plain && !existing.Plain {
+				return 0, usageError("%s is an encrypted secret; to store it as plain text instead, delete it with `msecrets rm %s` and set it again", name, name)
+			}
+			plain = existing.Plain
+		}
 		identities, err := c.RequireIdentities()
 		if err != nil {
 			return 0, err
 		}
-		value, err := readValue(c, name, environments, args)
+		value, err := readValue(c, name, environments, args, plain)
 		if err != nil {
 			return 0, err
 		}
 		signers, err := update(c, func(current *core.Document) ([]string, error) {
 			var signers []string
 			for _, environment := range environments {
-				sealed, err := core.SetValue(current, identities, core.SetValueInput{Secret: name, Environment: environment, Value: value, As: c.Options.As})
+				sealed, err := core.SetValue(current, identities, core.SetValueInput{Secret: name, Environment: environment, Value: value, As: c.Options.As, Plain: plain})
 				if err != nil {
 					return nil, err
 				}
@@ -253,7 +274,11 @@ var setCommand = command{
 		if err != nil {
 			return 0, err
 		}
-		c.Success(fmt.Sprintf("Set %s in %s (signed by %s)", name, strings.Join(environments, ", "), strings.Join(signers, ", ")))
+		kind := ""
+		if plain {
+			kind = " as plain text"
+		}
+		c.Success(fmt.Sprintf("Set %s%s in %s (signed by %s)", name, kind, strings.Join(environments, ", "), strings.Join(signers, ", ")))
 		return 0, nil
 	},
 }

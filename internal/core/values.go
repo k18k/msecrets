@@ -6,8 +6,17 @@ package core
 // by a recipient of that environment. The signature binds the ciphertext to the
 // file id, secret name, environment, and recipient set, so ciphertext cannot be
 // swapped between slots or injected by someone who is not a member.
+//
+// The encrypted payload is the value padded with zero bytes to a size bucket
+// (see [padValue]), so the ciphertext shows a size range, not the exact length.
+// Values never contain NUL, so the first zero byte ends the value; payloads
+// without one are unpadded values written by msecrets 5 and earlier.
+//
+// Values of plain secrets are not encrypted, only signed (with a separate
+// signature domain, so a signature never carries over between the two kinds).
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
@@ -82,9 +91,44 @@ func EnvironmentDigest(document *Document, environment string) (string, error) {
 	return RecipientDigest(keys), nil
 }
 
-func signatureMessage(document *Document, secret, environment, to, data string) []byte {
-	digest := sha256.Sum256([]byte(data))
-	return []byte(strings.Join([]string{"msecrets/v4/value", document.ID, secret, environment, to, hex.EncodeToString(digest[:])}, "\n"))
+// signatureMessage is what the signature of a value covers.
+func signatureMessage(document *Document, secret, environment string, value *SealedValue) []byte {
+	if value.Plain {
+		digest := sha256.Sum256([]byte(value.Text))
+		return []byte(strings.Join([]string{"msecrets/v6/plain-value", document.ID, secret, environment, hex.EncodeToString(digest[:])}, "\n"))
+	}
+	digest := sha256.Sum256([]byte(value.Data))
+	return []byte(strings.Join([]string{"msecrets/v4/value", document.ID, secret, environment, value.To, hex.EncodeToString(digest[:])}, "\n"))
+}
+
+// minPaddedSize is the smallest size bucket; larger buckets double.
+const minPaddedSize = 64
+
+// paddedSize is the payload size for a value of the given length: the smallest bucket with room for a zero byte.
+func paddedSize(length int) int {
+	size := minPaddedSize
+	for size < length+1 {
+		size *= 2
+	}
+	return size
+}
+
+func padValue(plaintext []byte) []byte {
+	padded := make([]byte, paddedSize(len(plaintext)))
+	copy(padded, plaintext)
+	return padded
+}
+
+// unpadValue returns the value in a decrypted payload; padding must be exactly what [padValue] writes.
+func unpadValue(payload []byte) ([]byte, error) {
+	end := bytes.IndexByte(payload, 0)
+	if end < 0 {
+		return payload, nil
+	}
+	if len(payload) != paddedSize(end) || bytes.ContainsFunc(payload[end:], func(r rune) bool { return r != 0 }) {
+		return nil, newError(CodeAgePayload, "Invalid age payload: the value is not padded the way msecrets pads values")
+	}
+	return payload[:end], nil
 }
 
 // Member is a recipient of the document whose private key is loaded.
@@ -158,7 +202,7 @@ func SignerFor(document *Document, identities []*Identity, environment, preferre
 		environment, who, environment, orNone(allowed))
 }
 
-// SealValue encrypts plaintext to the recipients of the environment and signs it.
+// SealValue pads and encrypts plaintext to the recipients of the environment and signs it.
 func SealValue(document *Document, secret, environment string, plaintext []byte, signer Member) (*SealedValue, error) {
 	keys, err := environmentKeys(document, environment)
 	if err != nil {
@@ -171,7 +215,9 @@ func SealValue(document *Document, secret, environment string, plaintext []byte,
 	for index, key := range keys {
 		recipients[index] = key.Recipient
 	}
-	encrypted, err := EncryptAge(plaintext, recipients)
+	padded := padValue(plaintext)
+	defer clear(padded)
+	encrypted, err := EncryptAge(padded, recipients)
 	if err != nil {
 		return nil, err
 	}
@@ -179,11 +225,18 @@ func SealValue(document *Document, secret, environment string, plaintext []byte,
 	return ResignValue(document, secret, environment, value, signer), nil
 }
 
-// ResignValue signs an existing ciphertext for a (possibly renamed) slot.
+// SignPlainValue signs the value of a plain secret.
+func SignPlainValue(document *Document, secret, environment, text string, signer Member) *SealedValue {
+	return ResignValue(document, secret, environment, &SealedValue{Plain: true, Text: text}, signer)
+}
+
+// ResignValue signs an existing value for a (possibly renamed) slot.
 // Callers must verify the previous signature first.
 func ResignValue(document *Document, secret, environment string, value *SealedValue, signer Member) *SealedValue {
-	signature := signer.Identity.Sign(signatureMessage(document, secret, environment, value.To, value.Data))
-	return &SealedValue{To: value.To, By: signer.Name, Sig: base64.StdEncoding.EncodeToString(signature), Data: value.Data}
+	signed := *value
+	signed.By = signer.Name
+	signed.Sig = base64.StdEncoding.EncodeToString(signer.Identity.Sign(signatureMessage(document, secret, environment, value)))
+	return &signed
 }
 
 // SignatureProblem explains why a sealed value cannot be trusted, or returns "" when its signature is valid.
@@ -206,13 +259,13 @@ func SignatureProblem(document *Document, secret, environment string, value *Sea
 		return "signed by \"" + value.By + "\", whose key cannot sign", nil
 	}
 	signature, err := base64.StdEncoding.DecodeString(value.Sig)
-	if err != nil || !ed25519.Verify(key.SigningKey, signatureMessage(document, secret, environment, value.To, value.Data), signature) {
+	if err != nil || !ed25519.Verify(key.SigningKey, signatureMessage(document, secret, environment, value), signature) {
 		return "the signature by \"" + value.By + "\" does not match (the value was modified, moved, or the signer's key changed)", nil
 	}
 	return "", nil
 }
 
-// OpenValue verifies the signature of a value and decrypts it.
+// OpenValue verifies the signature of a value and decrypts it (plain values need no identities).
 func OpenValue(document *Document, secret, environment string, value *SealedValue, identities []*Identity) ([]byte, error) {
 	problem, err := SignatureProblem(document, secret, environment, value)
 	if err != nil {
@@ -220,6 +273,9 @@ func OpenValue(document *Document, secret, environment string, value *SealedValu
 	}
 	if problem != "" {
 		return nil, newError(CodeSignature, "Refusing to decrypt %s in \"%s\": %s", secret, environment, problem)
+	}
+	if value.Plain {
+		return []byte(value.Text), nil
 	}
 
 	data, err := base64.StdEncoding.DecodeString(value.Data)
@@ -231,8 +287,15 @@ func OpenValue(document *Document, secret, environment string, value *SealedValu
 		ageIdentities[index] = identity.AgeIdentity
 	}
 	plaintext, err := DecryptAge(data, ageIdentities)
+	if err == nil {
+		value, err := unpadValue(plaintext)
+		if err != nil {
+			clear(plaintext)
+		}
+		return value, err
+	}
 	if !IsError(err, CodeAgeNoMatch) {
-		return plaintext, err
+		return nil, err
 	}
 
 	members, memberErr := Members(document, identities)

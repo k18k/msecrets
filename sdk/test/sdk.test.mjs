@@ -16,6 +16,7 @@ import {
   parseSourceSpec,
 } from "../../dist/ts-sdk/index.mjs";
 import fixture from "./fixtures/app.ms.json" with { type: "json" };
+import version6 from "./fixtures/v6.ms.json" with { type: "json" };
 
 const FIXTURES = join(import.meta.dirname, "fixtures");
 const DIST = join(import.meta.dirname, "..", "..", "dist", "ts-sdk");
@@ -251,5 +252,36 @@ describe("runtime", () => {
     const cold = Number(execFileSync(process.execPath, ["-e", measure], { encoding: "utf8" }));
     t.diagnostic(`first createClient (cold start): ${cold.toFixed(0)} ms`);
     assert.ok(cold > 0);
+  });
+});
+
+describe("format version 6", () => {
+  const PASSWORD = readFileSync(join(FIXTURES, "v6.password.txt"), "utf8").trim();
+
+  test("plain values need no key", () => {
+    const secrets = createClient(version6, { env: "production", identities: [] });
+    assert.deepEqual({ ...secrets }, { API_URL: "https://api.example.com" });
+  });
+
+  test("encrypted values are padded and read back exactly", () => {
+    const secrets = createClient(version6, { env: "development", identities: [developer] });
+    assert.deepEqual({ ...secrets }, { API_URL: "http://localhost:8080", DATABASE_URL: "postgres://localhost/dev" });
+  });
+
+  test("a password member unlocks with MSECRETS_PASSPHRASE, which is then scrubbed", (t) => {
+    withEnv(t, { MSECRETS_PASSPHRASE: PASSWORD });
+    const secrets = createClient(version6, { env: "development", identities: [] });
+    assert.equal(secrets.DATABASE_URL, "postgres://localhost/dev");
+    assert.equal(process.env["MSECRETS_PASSPHRASE"], undefined);
+  });
+
+  test("a wrong password is refused", (t) => {
+    withEnv(t, { MSECRETS_PASSPHRASE: `${PASSWORD}x` });
+    assert.throws(() => createClient(version6, { env: "development", identities: [] }), code("ACCESS_DENIED", /Wrong password for dana/));
+  });
+
+  test("without a key or password, encrypted values fail", (t) => {
+    withEnv(t, { MSECRETS_PASSPHRASE: undefined });
+    assert.throws(() => createClient(version6, { env: "development", identities: [] }), code("IDENTITY_SOURCE", /MSECRETS_PASSPHRASE/));
   });
 });

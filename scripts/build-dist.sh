@@ -38,7 +38,7 @@ set_package dist/cli/package.json "$version"
 
 cp -R sdk/js dist/ts-sdk
 mkdir -p dist/ts-sdk/schema
-cp schema/v4.json dist/ts-sdk/schema/
+cp schema/v4.json schema/v6.json dist/ts-sdk/schema/
 cp "$(go env GOROOT)/lib/wasm/wasm_exec.js" dist/ts-sdk/
 GOOS=js GOARCH=wasm go build -trimpath -ldflags="-s -w" -o dist/ts-sdk/msecrets.wasm ./sdk/wasm
 cp LICENSE dist/ts-sdk/

@@ -96,6 +96,10 @@ func InspectCell(document *Document, secretName, environment string) (Cell, erro
 		cell.State, cell.Detail = StateInvalid, problem
 		return cell, nil
 	}
+	if value.Plain {
+		cell.State = StateOK
+		return cell, nil
+	}
 	digest, err := EnvironmentDigest(document, environment)
 	if err != nil {
 		return Cell{}, err

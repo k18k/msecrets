@@ -184,21 +184,21 @@ func TestRemoveRecipient(t *testing.T) {
 func TestKeyRotation(t *testing.T) {
 	document, people := sampleDocument(t)
 	replacement := must[*Identity](t)(GenerateIdentity(false))
-	_, err := ReplaceRecipientKey(copyDocument(t, document), []*Identity{people.alice}, "alice", replacement.PublicKey.Token)
+	_, err := ReplaceRecipientKey(copyDocument(t, document), []*Identity{people.alice}, "alice", replacement.PublicKey.Token, "")
 	expectError(t, err, CodeAccessDenied, "load the new identity too")
 
-	updated := must[[]Slot](t)(ReplaceRecipientKey(document, []*Identity{people.alice, replacement}, "alice", replacement.PublicKey.Token))
+	updated := must[[]Slot](t)(ReplaceRecipientKey(document, []*Identity{people.alice, replacement}, "alice", replacement.PublicKey.Token, ""))
 	equal(t, len(updated), 3)
 	equal(t, inspectOK(t, document), true)
 	equal(t, must[string](t)(reveal(document, replacement, "DATABASE_URL", "production")), "postgres://prod")
 	_, err = reveal(document, people.alice, "DATABASE_URL", "production")
 	expectError(t, err, CodeAccessDenied, "")
-	_, err = ReplaceRecipientKey(document, []*Identity{replacement}, "bob", replacement.PublicKey.Token)
+	_, err = ReplaceRecipientKey(document, []*Identity{replacement}, "bob", replacement.PublicKey.Token, "")
 	expectError(t, err, CodeConflict, `already belongs to recipient "alice"`)
 
 	// A machine key can be rotated by any member who can read its environments.
 	machine := must[*Identity](t)(GenerateIdentity(false))
-	must[[]Slot](t)(ReplaceRecipientKey(document, []*Identity{replacement}, "ci", readOnlyToken(t, machine)))
+	must[[]Slot](t)(ReplaceRecipientKey(document, []*Identity{replacement}, "ci", readOnlyToken(t, machine), ""))
 	equal(t, must[string](t)(reveal(document, machine, "DATABASE_URL", "production")), "postgres://prod")
 }
 

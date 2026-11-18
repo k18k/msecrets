@@ -89,6 +89,12 @@ func slotList(targets []slotValue) []Slot {
 	return list
 }
 
+// keptPlain drops the plain values that recipient did not sign from targets: access changes
+// re-encrypt every encrypted value, but a plain value only needs a new signature when its signer loses access.
+func keptPlain(targets []slotValue, recipient string) []slotValue {
+	return slices.DeleteFunc(targets, func(target slotValue) bool { return target.value.Plain && target.value.By != recipient })
+}
+
 func requireValidSignatures(document *Document, targets []slotValue) error {
 	for _, target := range targets {
 		problem, err := SignatureProblem(document, target.Secret, target.Environment, target.value)
@@ -242,7 +248,7 @@ func RevokeAccess(document *Document, identities []*Identity, recipient string, 
 		}
 	}
 
-	result, err := resealSlots(document, identities, slots(document, inAffected), func() {
+	result, err := resealSlots(document, identities, keptPlain(slots(document, inAffected), recipient), func() {
 		for _, name := range affected {
 			environment, _ := document.Environments.Get(name)
 			environment.Recipients = slices.DeleteFunc(environment.Recipients, func(other string) bool { return other == recipient })
@@ -254,7 +260,8 @@ func RevokeAccess(document *Document, identities []*Identity, recipient string, 
 	if len(result.Skipped) > 0 && !allowIncomplete {
 		return RevokeResult{}, newError(CodeAccessDenied, "Revoking \"%s\" requires re-encrypting values you cannot decrypt or sign:\n%s", recipient, skippedLines(result.Skipped))
 	}
-	return RevokeResult{SyncResult: result, Rotate: slotList(slots(document, inAffected))}, nil
+	encrypted := slices.DeleteFunc(slots(document, inAffected), func(slot slotValue) bool { return slot.value.Plain })
+	return RevokeResult{SyncResult: result, Rotate: slotList(encrypted)}, nil
 }
 
 // RemoveRecipient removes a recipient from every environment and from the file.
@@ -276,10 +283,11 @@ func RemoveRecipient(document *Document, identities []*Identity, name string) (R
 	return result, nil
 }
 
-// ReplaceRecipientKey replaces the key of a recipient (key rotation or recovery).
+// ReplaceRecipientKey replaces the key of a recipient (key rotation or recovery);
+// salt is the salt of a password-derived key ("" for any other key).
 // Every value readable by the recipient is decrypted first, then re-encrypted to
 // the new key and re-signed, so it requires access to all of them.
-func ReplaceRecipientKey(document *Document, identities []*Identity, name, key string) ([]Slot, error) {
+func ReplaceRecipientKey(document *Document, identities []*Identity, name, key, salt string) ([]Slot, error) {
 	entry, err := RequireRecipient(document, name)
 	if err != nil {
 		return nil, err
@@ -291,6 +299,11 @@ func ReplaceRecipientKey(document *Document, identities []*Identity, name, key s
 	if err := requireUniqueKey(document, publicKey, name); err != nil {
 		return nil, err
 	}
+	if salt != "" {
+		if problem := saltProblem(salt, publicKey); problem != "" {
+			return nil, newError(CodeUsage, "%s", problem)
+		}
+	}
 
 	var environments []string
 	for environment, entry := range document.Environments.All() {
@@ -298,8 +311,8 @@ func ReplaceRecipientKey(document *Document, identities []*Identity, name, key s
 			environments = append(environments, environment)
 		}
 	}
-	targets := slots(document, func(slot Slot) bool { return slices.Contains(environments, slot.Environment) })
-	result, err := resealSlots(document, identities, targets, func() { entry.Key = publicKey.Token })
+	targets := keptPlain(slots(document, func(slot Slot) bool { return slices.Contains(environments, slot.Environment) }), name)
+	result, err := resealSlots(document, identities, targets, func() { entry.Key, entry.Salt = publicKey.Token, salt })
 	if err != nil {
 		return nil, err
 	}
@@ -406,9 +419,11 @@ type SetValueInput struct {
 	Value       string
 	// As signs as this recipient instead of the first eligible one ("" for any).
 	As string
+	// Plain creates the secret as a plain secret (an existing plain secret stays plain).
+	Plain bool
 }
 
-// SetValue encrypts and signs a value, creating the secret if needed.
+// SetValue encrypts (or, for a plain secret, only signs) a value, creating the secret if needed.
 func SetValue(document *Document, identities []*Identity, input SetValueInput) (*SealedValue, error) {
 	if err := RequireName(SecretName, input.Secret); err != nil {
 		return nil, err
@@ -428,17 +443,23 @@ func SetValue(document *Document, identities []*Identity, input SetValueInput) (
 		return nil, newError(CodeUsage, "%s does not apply to \"%s\" (it is limited to %s); change that with `msecrets scope`",
 			input.Secret, input.Environment, strings.Join(existing.Environments, ", "))
 	}
+	if exists && input.Plain && !existing.Plain {
+		return nil, newError(CodeUsage, "%s is an encrypted secret; to store it as plain text instead, delete it with `msecrets rm %s` and set it again", input.Secret, input.Secret)
+	}
+	plain := input.Plain || (exists && existing.Plain)
 
 	signer, err := SignerFor(document, identities, input.Environment, input.As)
 	if err != nil {
 		return nil, err
 	}
-	sealed, err := SealValue(document, input.Secret, input.Environment, []byte(input.Value), signer)
-	if err != nil {
+	var sealed *SealedValue
+	if plain {
+		sealed = SignPlainValue(document, input.Secret, input.Environment, input.Value, signer)
+	} else if sealed, err = SealValue(document, input.Secret, input.Environment, []byte(input.Value), signer); err != nil {
 		return nil, err
 	}
 	if !exists {
-		existing = &SecretEntry{}
+		existing = &SecretEntry{Plain: plain}
 		document.Secrets.Set(input.Secret, existing)
 	}
 	existing.Values.Set(input.Environment, sealed)
@@ -638,12 +659,16 @@ func resealSlots(document *Document, identities []*Identity, targets []slotValue
 }
 
 func resealOne(document *Document, identities []*Identity, slot Slot, plaintext []byte) (*SealedValue, error) {
-	if _, err := RequireSecret(document, slot.Secret); err != nil {
+	secret, err := RequireSecret(document, slot.Secret)
+	if err != nil {
 		return nil, err
 	}
 	signer, err := SignerFor(document, identities, slot.Environment, "")
 	if err != nil {
 		return nil, err
+	}
+	if secret.Plain {
+		return SignPlainValue(document, slot.Secret, slot.Environment, string(plaintext), signer), nil
 	}
 	return SealValue(document, slot.Secret, slot.Environment, plaintext, signer)
 }

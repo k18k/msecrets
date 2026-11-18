@@ -163,37 +163,71 @@ func storeIdentity(c *Context, identity *core.Identity, target, account string, 
 	return "file:" + path, nil
 }
 
-// ensureIdentity uses the first loaded identity, or creates, stores, and configures a new one.
-func ensureIdentity(c *Context, target string, postQuantum, passphrase bool) (*core.Identity, error) {
-	identities, err := c.Identities()
-	if err != nil {
-		return nil, err
+// ensureIdentity is the key init and join add you with: a password member's key with --password;
+// else the first loaded identity (and it says which); else a new key, stored where --store says
+// or, on a terminal without --store, where you choose.
+func ensureIdentity(c *Context, f flags, whose string) (newMember, error) {
+	target, passphrase := f.String("store"), f.Bool("passphrase")
+	if _, err := parseStoreTarget(target); err != nil {
+		return newMember{}, err
 	}
-	if len(identities) > 0 {
-		return identities[0], nil
+	if !f.Bool("password") {
+		loaded, err := c.LoadedIdentities()
+		if err != nil {
+			return newMember{}, err
+		}
+		if len(loaded) > 0 {
+			c.Note(c.Err.Dim(fmt.Sprintf("Using your existing key from %s (%s); `msecrets whoami` shows your keys", loaded[0].Source, shortKey(loaded[0].Identity.PublicKey.Token))))
+			return newMember{identity: loaded[0].Identity}, nil
+		}
+		if target == "" && !passphrase {
+			if target, passphrase, err = chooseStore(c); err != nil {
+				return newMember{}, err
+			}
+		}
 	}
-	identity, err := core.GenerateIdentity(postQuantum)
+	if f.Bool("password") || target == "password" {
+		password, generated, err := askNewPassword(c, whose)
+		if err != nil {
+			return newMember{}, err
+		}
+		identity, salt, err := core.NewPasswordIdentity(password, f.Bool("pq"))
+		if err != nil {
+			return newMember{}, err
+		}
+		return newMember{identity: identity, salt: salt, password: password, generated: generated}, nil
+	}
+
+	identity, err := core.GenerateIdentity(f.Bool("pq"))
 	if err != nil {
-		return nil, err
+		return newMember{}, err
 	}
 	spec, err := storeIdentity(c, identity, target, "", passphrase)
 	if err != nil {
-		return nil, err
+		return newMember{}, err
 	}
 	if spec == "" {
 		c.Note(c.Err.Yellow("Store the identity printed above in your password manager, then run `msecrets identity use <source>`"))
-		return identity, nil
+		return newMember{identity: identity}, nil
 	}
 	configPath, err := addIdentitySource(c, spec)
 	if err != nil {
-		return nil, err
+		return newMember{}, err
 	}
 	where := strings.TrimPrefix(spec, "file:")
 	if strings.HasPrefix(spec, "keychain:") {
 		where = "OS keychain"
 	}
-	c.Success(fmt.Sprintf("Created your identity (%s), registered in %s", where, configPath))
-	return identity, nil
+	c.Success(fmt.Sprintf("Created your key %s (%s), registered in %s", shortKey(identity.PublicKey.Token), where, configPath))
+	return newMember{identity: identity}, nil
+}
+
+// shortKey abbreviates a public key for messages.
+func shortKey(token string) string {
+	if len(token) <= 24 {
+		return token
+	}
+	return token[:16] + "…" + token[len(token)-6:]
 }
 
 var (

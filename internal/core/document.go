@@ -12,17 +12,22 @@ import (
 	"unicode/utf8"
 )
 
-// The msecrets.json v4 file format: the compatibility contract of msecrets.
+// The msecrets.json file format: the compatibility contract of msecrets.
+// msecrets writes version 6 and reads versions 4 and 6 (there is no version 5:
+// format 6 shipped with msecrets 6). Version 6 adds plain values, password
+// members, and padded values; a version 4 file has none of them.
 // Structural validation lives here; cryptographic state (signatures, drift,
 // completeness) is evaluated by status.go.
 
 const (
-	// FormatVersion is the version of the file format.
-	FormatVersion = 4
+	// FormatVersion is the version of the file format that msecrets writes.
+	FormatVersion = 6
+	// LegacyFormatVersion is the older version that msecrets still reads.
+	LegacyFormatVersion = 4
 	// DefaultFilename is the name of the secrets file.
 	DefaultFilename = "msecrets.json"
 	// SchemaURL is written as "$schema" into every file.
-	SchemaURL = "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v4.json"
+	SchemaURL = "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v6.json"
 	// MaxFileSize bounds parsing and signature checks of untrusted files.
 	MaxFileSize = 64 * 1024 * 1024
 )
@@ -33,6 +38,9 @@ type RecipientEntry struct {
 	Key string
 	// Description is optional ("" means none).
 	Description string
+	// Salt (base64) marks a password member: the private key is derived from
+	// the member's password and this salt (see [UnlockPassword]). "" otherwise.
+	Salt string
 }
 
 // EnvironmentEntry lists who can read (and, with a signing key, write) an environment.
@@ -40,16 +48,19 @@ type EnvironmentEntry struct {
 	Recipients []string
 }
 
-// SealedValue is one encrypted and signed value.
+// SealedValue is one signed value: encrypted, or plain text for a plain secret.
 type SealedValue struct {
-	// To is the digest of the recipient keys the value is encrypted to.
+	// To is the digest of the recipient keys the value is encrypted to ("" when plain).
 	To string
 	// By is the name of the recipient that signed the value.
 	By string
 	// Sig is the Ed25519 signature (base64) over the value binding.
 	Sig string
-	// Data is the age-encrypted value (base64).
+	// Data is the age-encrypted value (base64; "" when plain).
 	Data string
+	// Plain is set for the values of a plain secret; Text holds the value.
+	Plain bool
+	Text  string
 }
 
 // SecretEntry is a secret and its values per environment.
@@ -58,7 +69,9 @@ type SecretEntry struct {
 	Description string
 	// Environments the secret applies to; nil means every environment.
 	Environments []string
-	Values       Map[*SealedValue]
+	// Plain secrets hold configuration that is not secret: signed, never encrypted.
+	Plain  bool
+	Values Map[*SealedValue]
 }
 
 // Document is a parsed msecrets.json file.
@@ -186,6 +199,16 @@ func randomHex(size int) string { return hex.EncodeToString(randomBytes(size)) }
 
 type validator struct {
 	issues []ValidationIssue
+	// legacy is set while validating a version 4 file, which has no version 6 fields.
+	legacy bool
+}
+
+// optional returns the optional fields of an object: all of them in version 6, the first legacy ones in version 4.
+func (v *validator) optional(fields []string, legacy int) []string {
+	if v.legacy {
+		return fields[:legacy]
+	}
+	return fields
 }
 
 func (v *validator) issue(path, format string, args ...any) {
@@ -272,7 +295,7 @@ func (v *validator) nameList(value any, path string, known func(string) bool, wh
 }
 
 func (v *validator) recipient(value any, path string) (*RecipientEntry, string) {
-	entry := v.object(value, path, []string{"key"}, []string{"description"})
+	entry := v.object(value, path, []string{"key"}, v.optional([]string{"description", "salt"}, 1))
 	if entry == nil {
 		return nil, ""
 	}
@@ -282,7 +305,8 @@ func (v *validator) recipient(value any, path string) (*RecipientEntry, string) 
 		return nil, ""
 	}
 	keyID := key
-	if parsed, err := ParsePublicKey(key); err != nil {
+	parsed, err := ParsePublicKey(key)
+	if err != nil {
 		v.issue(path+".key", "%s", err.Error())
 	} else {
 		keyID = parsed.id()
@@ -290,7 +314,15 @@ func (v *validator) recipient(value any, path string) (*RecipientEntry, string) 
 			v.issue(path+".key", "Public key is not in canonical form; expected \"%s\"", parsed.Token)
 		}
 	}
-	return &RecipientEntry{Key: key, Description: v.description(entry, path+".description")}, keyID
+	recipient := &RecipientEntry{Key: key, Description: v.description(entry, path+".description")}
+	if field, present := entry.Get("salt"); present {
+		salt, ok := v.string(field, path+".salt")
+		if problem := saltProblem(salt, parsed); ok && problem != "" {
+			v.issue(path+".salt", "%s", problem)
+		}
+		recipient.Salt = salt
+	}
+	return recipient, keyID
 }
 
 // isPaddedBase64 matches standard base64 with padding (any trailing bits).
@@ -304,8 +336,12 @@ func isPaddedBase64(text string) bool {
 
 var lowerHex32 = regexp.MustCompile(`^[0-9a-f]{32}$`)
 
-func (v *validator) value(value any, path string, recipients *Map[*RecipientEntry]) *SealedValue {
-	entry := v.object(value, path, []string{"to", "by", "sig", "data"}, nil)
+func (v *validator) value(value any, path string, recipients *Map[*RecipientEntry], plain bool) *SealedValue {
+	required := []string{"to", "by", "sig", "data"}
+	if plain {
+		required = []string{"by", "sig", "value"}
+	}
+	entry := v.object(value, path, required, nil)
 	if entry == nil {
 		return nil
 	}
@@ -313,19 +349,30 @@ func (v *validator) value(value any, path string, recipients *Map[*RecipientEntr
 		value, _ := entry.Get(name)
 		return v.string(value, path+"."+name)
 	}
-	to, okTo := field("to")
 	by, okBy := field("by")
 	sig, okSig := field("sig")
-	data, okData := field("data")
-
-	if okTo && !lowerHex32.MatchString(to) {
-		v.issue(path+".to", "Expected a 32 character lowercase hex recipient digest")
-	}
 	if okBy && !recipients.Has(by) {
 		v.issue(path+".by", "Unknown recipient \"%s\"", by)
 	}
 	if okSig && !(isPaddedBase64(sig) && base64.StdEncoding.DecodedLen(len(sig))-strings.Count(sig, "=") == 64) {
 		v.issue(path+".sig", "Expected a base64 Ed25519 signature")
+	}
+
+	if plain {
+		text, okText := field("value")
+		if okText && strings.Contains(text, "\x00") {
+			v.issue(path+".value", "Values cannot contain NUL characters")
+		}
+		if !okBy || !okSig || !okText {
+			return nil
+		}
+		return &SealedValue{By: by, Sig: sig, Plain: true, Text: text}
+	}
+
+	to, okTo := field("to")
+	data, okData := field("data")
+	if okTo && !lowerHex32.MatchString(to) {
+		v.issue(path+".to", "Expected a 32 character lowercase hex recipient digest")
 	}
 	if okData && !isAgeData(data) {
 		v.issue(path+".data", "Expected a base64-encoded age file")
@@ -346,11 +393,17 @@ func isAgeData(text string) bool {
 }
 
 func (v *validator) secret(value any, path string, environments *Map[*EnvironmentEntry], recipients *Map[*RecipientEntry]) *SecretEntry {
-	entry := v.object(value, path, []string{"values"}, []string{"description", "environments"})
+	entry := v.object(value, path, []string{"values"}, v.optional([]string{"description", "environments", "plain"}, 2))
 	if entry == nil {
 		return nil
 	}
 	secret := &SecretEntry{Description: v.description(entry, path+".description")}
+	if plain, present := entry.Get("plain"); present {
+		if plain != true {
+			v.issue(path+".plain", "Expected true; omit it for an encrypted secret")
+		}
+		secret.Plain = true
+	}
 	if list, present := entry.Get("environments"); present {
 		secret.Environments = v.nameList(list, path+".environments", environments.Has, "environment")
 		if len(secret.Environments) == 0 {
@@ -364,7 +417,7 @@ func (v *validator) secret(value any, path string, environments *Map[*Environmen
 			continue
 		}
 		sealed, _ := values.(*Map[any]).Get(environment)
-		if parsed := v.value(sealed, path+".values."+environment, recipients); parsed != nil {
+		if parsed := v.value(sealed, path+".values."+environment, recipients, secret.Plain); parsed != nil {
 			secret.Values.Set(environment, parsed)
 		}
 	}
@@ -374,18 +427,23 @@ func (v *validator) secret(value any, path string, environments *Map[*Environmen
 var legacyVersion = regexp.MustCompile(`^[0-3]\.`)
 
 // ValidateDocument validates untrusted input (a value from [ParseJSON]) against
-// the v4 format. It returns the document when there are no issues.
+// the format (version 6, or the older version 4). It returns the document when there are no issues.
 func ValidateDocument(input any) (*Document, []ValidationIssue) {
 	v := &validator{}
 
 	if object, ok := input.(*Map[any]); ok && object != nil {
-		if version, present := object.Get("version"); version != float64(FormatVersion) {
+		version, present := object.Get("version")
+		v.legacy = version == float64(LegacyFormatVersion)
+		if version != float64(FormatVersion) && !v.legacy {
 			text, isString := version.(string)
+			number, isNumber := version.(float64)
 			switch {
 			case isString && legacyVersion.MatchString(text):
-				v.issue("$.version", "This is a msecrets v%s file; msecrets v4 uses a new format. Re-create it with `msecrets init` and `msecrets import`", text[:1])
+				v.issue("$.version", "This is a msecrets v%s file; msecrets v4 and later use a new format. Re-create it with `msecrets init` and `msecrets import`", text[:1])
 			case !present:
 				v.issue("$.version", "Unsupported format version undefined; expected %d", FormatVersion)
+			case isNumber && number > FormatVersion:
+				v.issue("$.version", "Format version %s is newer than this msecrets, which reads versions %d and %d; upgrade msecrets", jsStringify(version, ""), LegacyFormatVersion, FormatVersion)
 			default:
 				v.issue("$.version", "Unsupported format version %s; expected %d", jsStringify(version, ""), FormatVersion)
 			}
@@ -495,9 +553,10 @@ func sortedKeys[V any](m *Map[V]) []string {
 	return keys
 }
 
-// SerializeDocument renders the canonical file text: fixed field order, sorted
-// recipient and secret names, environments in their declared order, two-space
-// indentation, and a trailing newline. Byte-identical to the TypeScript implementation.
+// SerializeDocument renders the canonical file text, always as version 6: fixed
+// field order, sorted recipient and secret names, environments in their declared
+// order, two-space indentation, and a trailing newline. Apart from "$schema" and
+// "version", a version 4 file serializes byte-identically to the TypeScript implementation.
 func SerializeDocument(document *Document) string {
 	environmentOrder := document.Environments.Keys()
 
@@ -508,6 +567,9 @@ func SerializeDocument(document *Document) string {
 		object.Set("key", entry.Key)
 		if entry.Description != "" {
 			object.Set("description", entry.Description)
+		}
+		if entry.Salt != "" {
+			object.Set("salt", entry.Salt)
 		}
 		recipients.Set(name, object)
 	}
@@ -541,16 +603,27 @@ func SerializeDocument(document *Document) string {
 			}
 			object.Set("environments", list)
 		}
+		if secret.Plain {
+			object.Set("plain", true)
+		}
 		values := &Map[any]{}
 		for _, environment := range environmentOrder {
-			if value, ok := secret.Values.Get(environment); ok {
-				sealed := &Map[any]{}
+			value, ok := secret.Values.Get(environment)
+			if !ok {
+				continue
+			}
+			sealed := &Map[any]{}
+			if value.Plain {
+				sealed.Set("by", value.By)
+				sealed.Set("sig", value.Sig)
+				sealed.Set("value", value.Text)
+			} else {
 				sealed.Set("to", value.To)
 				sealed.Set("by", value.By)
 				sealed.Set("sig", value.Sig)
 				sealed.Set("data", value.Data)
-				values.Set(environment, sealed)
 			}
+			values.Set(environment, sealed)
 		}
 		object.Set("values", values)
 		secrets.Set(name, object)

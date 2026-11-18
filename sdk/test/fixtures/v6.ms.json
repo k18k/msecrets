@@ -1,0 +1,58 @@
+{
+  "$schema": "https://raw.githubusercontent.com/k18k/msecrets/master/schema/v6.json",
+  "version": 6,
+  "id": "7fc3792c239c4f16434ef97e1ea64cba",
+  "recipients": {
+    "dana": {
+      "key": "msecrets1qx4fj0h224826y9gfry63hyvws58m5k8qtrdx9qddvxwykhml2y2mqjly2v8fj8ca0a3ywdzdaevn9kzkj4x804qkuj7y9ng3x8djqjxlukuh4",
+      "description": "Types a password",
+      "salt": "+GSxTe9LnQRQk2EMQDFLpQ=="
+    },
+    "developer": {
+      "key": "msecrets1qy5r73q25sxpfth5mh0kg2ll5aalf37mfwxt9gk2xp96uxqag2vkqu7fhy8hqa7mcsrhddgumtw9n9fxhxc8rz90p296z4szrlc649j23xywju"
+    }
+  },
+  "environments": {
+    "development": {
+      "recipients": [
+        "dana",
+        "developer"
+      ]
+    },
+    "production": {
+      "recipients": [
+        "developer"
+      ]
+    }
+  },
+  "secrets": {
+    "API_URL": {
+      "plain": true,
+      "values": {
+        "development": {
+          "by": "developer",
+          "sig": "b6qYSYmxhBA5mByKbkfvkm4VqivOfZqp0hf/f9GMVSKRFgdTRREMnXD0JZyanFf/JEoNWtor3Kl+4+jW/rlzDA==",
+          "value": "http://localhost:8080"
+        },
+        "production": {
+          "by": "developer",
+          "sig": "7IvmbB7DbuqagpolzkzEFWX+8qNg8IXXja9QVV/kheUBXy9PBg6h1VEu8GA9wFPN92nY0joqgjDyPyXPIyxACA==",
+          "value": "https://api.example.com"
+        }
+      }
+    },
+    "DATABASE_URL": {
+      "environments": [
+        "development"
+      ],
+      "values": {
+        "development": {
+          "to": "780ba119a2368219ba0cf456dc4cef96",
+          "by": "developer",
+          "sig": "pmjaW1bBmCRxVNMuRDmb/Z1/ImTL6DKx/UJIY23xiDvDmA6OzNOQ1VrH+bUrnayEgTL8d4zENUNIJAqEVYNvBg==",
+          "data": "YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB5REQxVzFIZm54M0F3bTdaVU1SR1NmNE9sWnRaL09adGluZ0ZUU1Z3M1NrCmw5ekFrRmJ5SU0rbEZ4NHhTRVBaRGM5dkpKcWwxSHlZNzlyU3JOREJaNzAKLT4gWDI1NTE5IE9FMU95cTdNdzR1Q0dLWjUwMVBRYW90ZzRlSnpCVVh5ajNvaThMcy9yV0EKdHdnc0pEVmFXSndnaS9LOVh3a051ZEhJbXJKbDlXc2MyN09MREltK0ZJbwotLS0gV1l1MG9nYkNHemhtazhrY2VrREEwNG5WWEhyQkRkTCtSNTRRUXNUS2tiNAq+JJiDjvF+uDU6AjogPtqs1BiwCWu8Ct5iPyJfXfm2INa7Pb1Touv2lMwossOz+3XwHKuBVEdURMoASg8SABZlxDhPmoK6HrZQTLzAlis9WvUwyfpp49g+oFA4kMURj9w="
+        }
+      }
+    }
+  }
+}

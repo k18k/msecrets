@@ -23,11 +23,13 @@ func decryptEnvironment(c *Context, f flags) (string, []entry, error) {
 		return "", nil, err
 	}
 	var names, missing []string
+	encrypted := false
 	for name, secret := range document.Secrets.All() {
 		if !slices.Contains(core.SecretEnvironments(document, secret), environment) {
 			continue
 		}
 		names = append(names, name)
+		encrypted = encrypted || !secret.Plain
 		if !secret.Values.Has(environment) {
 			missing = append(missing, name)
 		}
@@ -38,11 +40,13 @@ func decryptEnvironment(c *Context, f flags) (string, []entry, error) {
 	if len(names) == 0 {
 		return environment, nil, nil
 	}
-	identities, err := c.Identities()
-	if err != nil {
-		return "", nil, err
+	var identities []*core.Identity
+	if encrypted {
+		if identities, err = c.Identities(); err != nil {
+			return "", nil, err
+		}
 	}
-	if len(identities) == 0 {
+	if encrypted && len(identities) == 0 {
 		return "", nil, coreError(core.CodeIdentitySource, "No msecrets identity found. Set MSECRETS_IDENTITY (or MSECRETS_IDENTITY_FILE / MSECRETS_IDENTITY_SOURCE), mount /run/secrets/msecrets_identity, or run `msecrets init` on a developer machine")
 	}
 	values := make([]entry, len(names))

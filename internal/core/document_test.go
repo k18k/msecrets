@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -48,7 +49,7 @@ func TestCanonicalSerialization(t *testing.T) {
 func TestLegacyVersions(t *testing.T) {
 	legacy := parseJSONValue(t, `{"version":"2.0.0","environments":[],"keys":[],"secrets":{}}`)
 	issues := issuesOf(legacy)
-	if len(issues) != 1 || !strings.Contains(issues[0], "msecrets v2 file; msecrets v4 uses a new format") {
+	if len(issues) != 1 || !strings.Contains(issues[0], "msecrets v2 file; msecrets v4 and later use a new format") {
 		t.Fatal(issues)
 	}
 	if issues := issuesOf(parseJSONValue(t, `{"version":5}`)); !strings.Contains(issues[0], "Unsupported format version 5") {
@@ -131,10 +132,10 @@ func TestStrictJSON(t *testing.T) {
 	document, _ := sampleDocument(t)
 	text := SerializeDocument(document)
 	for name, bad := range map[string]string{
-		"duplicate key":   strings.Replace(text, `"version": 4,`, `"version": 4, "version": 4,`, 1),
+		"duplicate key":   strings.Replace(text, `"version": 6,`, `"version": 6, "version": 6,`, 1),
 		"invalid UTF-8":   strings.Replace(text, `"version"`, "\"version\xff\"", 1),
 		"lone surrogate":  strings.Replace(text, `"secrets": {`, `"secrets": {"\ud800": {"values": {}},`, 1),
-		"trailing comma":  strings.Replace(text, `"version": 4,`, `"version": 4,,`, 1),
+		"trailing comma":  strings.Replace(text, `"version": 6,`, `"version": 6,,`, 1),
 		"byte order mark": "\xef\xbb\xbf" + text,
 		"trailing data":   text + "x",
 		"deep nesting":    strings.Repeat("[", 1000) + strings.Repeat("]", 1000),
@@ -179,7 +180,13 @@ func TestNames(t *testing.T) {
 }
 
 func TestSchemaPatterns(t *testing.T) {
-	schemaText, err := os.ReadFile(filepath.Join("..", "..", "schema", "v4.json"))
+	for _, version := range []string{"v4", "v6"} {
+		t.Run(version, func(t *testing.T) { checkSchemaPatterns(t, version) })
+	}
+}
+
+func checkSchemaPatterns(t *testing.T, version string) {
+	schemaText, err := os.ReadFile(filepath.Join("..", "..", "schema", version+".json"))
 	check(t, err)
 	schema := parseJSONValue(t, string(schemaText))
 	pattern := func(section string) *regexp.Regexp {
@@ -206,6 +213,19 @@ func TestSchemaPatterns(t *testing.T) {
 	check(t, err)
 	if line := strings.Join(strings.Fields(string(plain))[:2], " "); !key.MatchString(line) {
 		t.Error(line)
+	}
+	if version == "v6" {
+		saltPattern, _ := object(schema, "properties", "recipients", "additionalProperties", "properties", "salt").Get("pattern")
+		_, salt, err := NewPasswordIdentity("a password that is long enough", false)
+		check(t, err)
+		if !regexp.MustCompile(saltPattern.(string)).MatchString(salt) || saltProblem(salt[:21]+"B==", nil) == "" {
+			t.Error(salt)
+		}
+		var schemaURL string
+		check(t, json.Unmarshal(schemaText, &struct {
+			ID *string `json:"$id"`
+		}{&schemaURL}))
+		equal(t, schemaURL, SchemaURL)
 	}
 }
 

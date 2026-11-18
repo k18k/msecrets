@@ -536,10 +536,16 @@ func (a *App) editValue(secret, environment string) error {
 		// Not readable for us: start from an empty value.
 		current, _ = core.RevealValue(a.document, identities, secret, environment)
 	}
-	a.input(secret+" in "+environment, "enter save · esc cancel · tab show/hide", current, true, func(next string) error {
+	entry, _ := a.document.Secrets.Get(secret)
+	plain := entry != nil && entry.Plain
+	title := secret + " in " + environment
+	if plain {
+		title += " (plain text)"
+	}
+	a.input(title, "enter save · esc cancel · tab show/hide", current, !plain, func(next string) error {
 		if _, err := mutate(a, func(d *core.Document) (*core.SealedValue, error) {
 			// The file may have changed since the form opened (another terminal, a git pull).
-			if now := valueOf(d, secret, environment); (now == nil) != (original == nil) || (now != nil && now.Data != original.Data) {
+			if now := valueOf(d, secret, environment); (now == nil) != (original == nil) || (now != nil && (now.Data != original.Data || now.Text != original.Text)) {
 				return nil, &core.Error{Code: core.CodeConflict, Message: fmt.Sprintf("%s in %s changed while you were editing it; nothing was saved. Open it again to see the new value", secret, environment)}
 			}
 			return core.SetValue(d, identities, core.SetValueInput{Secret: secret, Environment: environment, Value: next})
@@ -589,9 +595,12 @@ func (a *App) handleSecretsKey(k key, char string) error {
 	case k.name == "enter" || char == "e":
 		return a.editValue(secret, environment)
 	case char == "v":
-		identities, err := a.requireIdentities()
-		if err != nil {
-			return err
+		var identities []*core.Identity
+		if value := valueOf(a.document, secret, environment); value == nil || !value.Plain {
+			var err error
+			if identities, err = a.requireIdentities(); err != nil {
+				return err
+			}
 		}
 		value, err := core.RevealValue(a.document, identities, secret, environment)
 		if err != nil {

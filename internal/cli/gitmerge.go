@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/k18k/msecrets/internal/core"
@@ -32,7 +33,7 @@ func sortedNames(names []string) []string {
 func renderForDiff(text string) string {
 	document, err := core.ParseDocumentText(text, "")
 	if err != nil {
-		return "# msecrets: this file is not a valid v4 secrets file\n# " + strings.ReplaceAll(err.Error(), "\n", "\n# ") + "\n" + text
+		return "# msecrets: this file is not a valid secrets file\n# " + strings.ReplaceAll(err.Error(), "\n", "\n# ") + "\n" + text
 	}
 
 	lines := []string{"# msecrets file " + document.ID, "", "recipients:"}
@@ -45,6 +46,9 @@ func renderForDiff(text string) string {
 		line := "  " + name + ": " + string(key.Kind)
 		if key.SigningKey == nil {
 			line += " (read-only)"
+		}
+		if entry.Salt != "" {
+			line += " (password)"
 		}
 		line += " " + fingerprint(key.Token)
 		if entry.Description != "" {
@@ -74,6 +78,9 @@ func renderForDiff(text string) string {
 		if secret.Environments != nil {
 			lines = append(lines, "    only: "+strings.Join(secret.Environments, ", "))
 		}
+		if secret.Plain {
+			lines = append(lines, "    plain text")
+		}
 		for _, cell := range report.Cells {
 			if cell.Secret != name || cell.State == core.StateAbsent {
 				continue
@@ -82,7 +89,9 @@ func renderForDiff(text string) string {
 			if cell.Signer != "" {
 				line += " by " + cell.Signer
 			}
-			if value, ok := secret.Values.Get(cell.Environment); ok {
+			if value, ok := secret.Values.Get(cell.Environment); ok && value.Plain {
+				line += " = " + strconv.Quote(value.Text)
+			} else if ok {
 				line += " " + fingerprint(value.Data)
 			}
 			lines = append(lines, line)

@@ -73,7 +73,7 @@ func TestTextconvRendering(t *testing.T) {
 	if strings.Contains(rendered, "YWdl") {
 		t.Fatal("ciphertext in the rendering")
 	}
-	expectMatch(t, renderForDiff("{}"), `^# msecrets: this file is not a valid v4 secrets file`)
+	expectMatch(t, renderForDiff("{}"), `^# msecrets: this file is not a valid secrets file`)
 }
 
 func TestTextconvChangedAndForgedValues(t *testing.T) {

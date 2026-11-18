@@ -234,6 +234,9 @@ var recipientLsCommand = command{
 			if key.SigningKey == nil {
 				kind += c.Out.Dim(" read-only")
 			}
+			if entry.Salt != "" {
+				kind += c.Out.Dim(" password")
+			}
 			environments := strings.Join(environmentsOf(document, name), ", ")
 			if environments == "" {
 				environments = c.Out.Dim("none")
@@ -247,24 +250,59 @@ var recipientLsCommand = command{
 	},
 }
 
-// newKey is the key argument of recipient add/rotate, or a generated read-only machine key.
-func newKey(args []string, f flags, missing string) (string, *core.Identity, error) {
+// recipientKey is the new key of recipient add/rotate: the KEY argument, a generated
+// read-only machine key (--generate), or a key derived from a password (--password).
+type recipientKey struct {
+	key string
+	// generated is a new machine identity, to be shown once.
+	generated *core.Identity
+	// password is the new identity and salt of a password member.
+	password newMember
+}
+
+func newKey(c *Context, args []string, f flags, missing string) (recipientKey, error) {
+	if f.Bool("generate") && f.Bool("password") {
+		return recipientKey{}, usageError("Pass --generate or --password, not both")
+	}
+	if f.Bool("password") {
+		if len(args) > 1 {
+			return recipientKey{}, usageError("--password derives the key; do not pass one")
+		}
+		password, generated, err := askNewPassword(c, "\""+args[0]+"\"")
+		if err != nil {
+			return recipientKey{}, err
+		}
+		identity, salt, err := core.NewPasswordIdentity(password, f.Bool("pq"))
+		if err != nil {
+			return recipientKey{}, err
+		}
+		return recipientKey{key: identity.PublicKey.Token, password: newMember{identity: identity, salt: salt, password: password, generated: generated}}, nil
+	}
 	if f.Bool("generate") {
 		generated, err := core.GenerateIdentity(f.Bool("pq"))
 		if err != nil {
-			return "", nil, err
+			return recipientKey{}, err
 		}
 		key, err := core.ReadOnlyPublicKey(generated.PublicKey)
 		if err != nil {
-			return "", nil, err
+			return recipientKey{}, err
 		}
-		return key.Token, generated, nil
+		return recipientKey{key: key.Token, generated: generated}, nil
 	}
 	if len(args) < 2 || args[1] == "" {
-		return "", nil, usageError("%s", missing)
+		return recipientKey{}, usageError("%s", missing)
 	}
 	key, err := resolveKeyArgument(strings.Join(args[1:], " "))
-	return key, nil, err
+	return recipientKey{key: key}, err
+}
+
+// showPassword shows a generated password of a password member, once the change is saved.
+func (k recipientKey) showPassword(c *Context, name string) {
+	if k.password.generated {
+		showGeneratedPassword(c, k.password.password, "\""+name+"\"")
+	} else if k.password.salt != "" {
+		c.Note(c.Err.Dim(fmt.Sprintf("\"%s\" unlocks the key with the password you chose.", name)))
+	}
 }
 
 var recipientAddCommand = command{
@@ -275,18 +313,23 @@ var recipientAddCommand = command{
 		"msecrets recipient add bob msecrets1… --env development",
 		"msecrets recipient add carol github:carol",
 		"msecrets recipient add ci --generate --env production | gh secret set MSECRETS_IDENTITY",
+		"msecrets recipient add dana --password --env development   # dana types a password instead of keeping a key",
 	},
-	options: []option{optGenerate, optPQ,
+	options: []option{optGenerate, optPQ, optPassword,
 		{name: "description", short: "d", takesValue: true, placeholder: "TEXT", description: "Describe the recipient"}},
 	run: func(c *Context, args []string, f flags) (int, error) {
-		if err := requireArgs(args, 1, "recipient add <NAME> <KEY> | --generate"); err != nil {
+		if err := requireArgs(args, 1, "recipient add <NAME> <KEY> | --generate | --password"); err != nil {
 			return 0, err
 		}
 		name := args[0]
-		key, generated, err := newKey(args, f, "Pass the recipient's public key (msecrets1…, age1…, ssh-ed25519 …, github:USER) or --generate")
+		if err := core.RequireName(core.RecipientName, name); err != nil {
+			return 0, err
+		}
+		newRecipient, err := newKey(c, args, f, "Pass the recipient's public key (msecrets1…, age1…, ssh-ed25519 …, github:USER), --generate, or --password")
 		if err != nil {
 			return 0, err
 		}
+		key, generated := newRecipient.key, newRecipient.generated
 		environments := f.List("env")
 		var identities []*core.Identity
 		if len(environments) > 0 {
@@ -295,7 +338,12 @@ var recipientAddCommand = command{
 			}
 		}
 		result, err := update(c, func(document *core.Document) (*core.SyncResult, error) {
-			if _, err := core.AddRecipient(document, name, key, f.String("description")); err != nil {
+			if newRecipient.password.salt != "" {
+				err = core.AddPasswordRecipient(document, name, newRecipient.password.identity, newRecipient.password.salt, f.String("description"))
+			} else {
+				_, err = core.AddRecipient(document, name, key, f.String("description"))
+			}
+			if err != nil {
 				return nil, err
 			}
 			if len(environments) == 0 {
@@ -316,6 +364,7 @@ var recipientAddCommand = command{
 		if parsed, err := core.ParsePublicKey(key); err == nil && parsed.SigningKey == nil {
 			c.Note(c.Err.Dim("This key cannot sign, so the recipient can read but not write values."))
 		}
+		newRecipient.showPassword(c, name)
 		if generated != nil {
 			fmt.Fprint(c.Stdout, core.FormatIdentityFile(generated, "recipient "+name))
 			c.Note(c.Err.Yellow(fmt.Sprintf("The identity above is shown only once. Store it in your runtime secret store and expose it as %s (or mount it at /run/secrets/msecrets_identity).", core.IdentityVariable)))
@@ -383,33 +432,41 @@ var recipientMvCommand = command{
 var recipientRotateCommand = command{
 	name:    "recipient rotate",
 	args:    "<NAME> [NEW_KEY]",
-	summary: "Replace a recipient's key and re-encrypt its values (--generate: new machine key)",
+	summary: "Replace a recipient's key and re-encrypt its values (--generate: new machine key; --password: new password)",
 	examples: []string{
 		"msecrets recipient rotate bob msecrets1…",
 		"msecrets recipient rotate ci --generate | gh secret set MSECRETS_IDENTITY",
+		"msecrets recipient rotate dana --password   # change the password of a password member",
 	},
-	options:  []option{optGenerate, optPQ},
+	options:  []option{optGenerate, optPQ, optPassword},
 	complete: completeFirst(recipientNames),
 	run: func(c *Context, args []string, f flags) (int, error) {
-		if err := requireArgs(args, 1, "recipient rotate <NAME> <NEW_KEY> | --generate"); err != nil {
+		if err := requireArgs(args, 1, "recipient rotate <NAME> <NEW_KEY> | --generate | --password"); err != nil {
 			return 0, err
 		}
 		name := args[0]
-		key, generated, err := newKey(args, f, "Pass the new public key or --generate")
-		if err != nil {
-			return 0, err
-		}
+		// The current keys first: a password member's old password is asked before the new one.
 		identities, err := c.RequireIdentities()
 		if err != nil {
 			return 0, err
 		}
+		newRecipient, err := newKey(c, args, f, "Pass the new public key, --generate, or --password")
+		if err != nil {
+			return 0, err
+		}
+		key, generated := newRecipient.key, newRecipient.generated
+		if newRecipient.password.identity != nil {
+			// Re-encrypted values are signed with the new key when the recipient rotates its own.
+			identities = append(identities, newRecipient.password.identity)
+		}
 		updated, err := update(c, func(document *core.Document) ([]core.Slot, error) {
-			return core.ReplaceRecipientKey(document, identities, name, key)
+			return core.ReplaceRecipientKey(document, identities, name, key, newRecipient.password.salt)
 		})
 		if err != nil {
 			return 0, err
 		}
 		c.Success(fmt.Sprintf("Rotated the key of \"%s\" (%d value(s) re-encrypted)", name, len(updated)))
+		newRecipient.showPassword(c, name)
 		if generated != nil {
 			fmt.Fprint(c.Stdout, core.FormatIdentityFile(generated, "recipient "+name))
 			c.Note(c.Err.Yellow("The identity above is shown only once; replace the old one in your runtime secret store."))

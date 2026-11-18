@@ -37,12 +37,14 @@ func revealAll(t *testing.T, document *Document, identities []*Identity) map[str
 	return values
 }
 
-// withCurrentSchemaURL is the byte-identical re-serialization of a file msecrets 4 wrote: only
-// the "$schema" URL changes, from the one of the npm registry package to SchemaURL.
-func withCurrentSchemaURL(t *testing.T, text string) string {
+// asVersion6 is the byte-identical re-serialization of a version 4 file msecrets 4 wrote: only
+// the "$schema" URL (from the one of the npm registry package to SchemaURL) and the version change.
+func asVersion6(t *testing.T, text string) string {
 	t.Helper()
 	const npmSchemaURL = "https://cdn.jsdelivr.net/npm/@msecrets/ts-sdk@4/schema/v4.json"
 	equal(t, strings.Count(text, npmSchemaURL), 1)
+	equal(t, strings.Count(text, "\n  \"version\": 4,\n"), 1)
+	text = strings.Replace(text, "\n  \"version\": 4,\n", "\n  \"version\": 6,\n", 1)
 	return strings.Replace(text, npmSchemaURL, SchemaURL, 1)
 }
 
@@ -51,7 +53,7 @@ func TestFixtureFromTypeScript(t *testing.T) {
 	directory := filepath.Join("..", "..", "sdk", "test", "fixtures")
 	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, "app.ms.json"))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
-	equal(t, SerializeDocument(document), withCurrentSchemaURL(t, text))
+	equal(t, SerializeDocument(document), asVersion6(t, text))
 	equal(t, inspectOK(t, document), true)
 
 	// Key derivation: the public keys TypeScript wrote into the identity files.
@@ -87,7 +89,7 @@ func TestGoldenFromTypeScript(t *testing.T) {
 	directory := filepath.Join("testdata", "typescript")
 	text := string(must[[]byte](t)(os.ReadFile(filepath.Join(directory, DefaultFilename))))
 	document := must[*Document](t)(ParseDocumentText(text, ""))
-	equal(t, SerializeDocument(document), withCurrentSchemaURL(t, text))
+	equal(t, SerializeDocument(document), asVersion6(t, text))
 	equal(t, inspectOK(t, document), true)
 	equal(t, strings.Join(document.Environments.Keys(), ","), "2,10,production,development")
 	for i, name := range []string{"alice", "bob", "ci"} {

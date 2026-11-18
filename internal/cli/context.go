@@ -194,6 +194,9 @@ func (c *Context) LoadedIdentities() ([]core.LoadedIdentity, error) {
 		}
 		loaded, err := core.LoadIdentities(sources)
 		if err == nil {
+			if loaded, err = c.unlockPassword(loaded, fromEnv, haveEnv); err != nil {
+				return nil, err
+			}
 			c.identities, c.loaded, c.childEnv = loaded, true, env
 			return loaded, nil
 		}
@@ -255,7 +258,7 @@ func (c *Context) Identities() ([]*core.Identity, error) {
 func (c *Context) RequireIdentities() ([]*core.Identity, error) {
 	identities, err := c.Identities()
 	if err == nil && len(identities) == 0 {
-		err = &core.Error{Code: core.CodeIdentitySource, Message: "No msecrets identity found. Create one with `msecrets identity new`, or point to one with --identity, MSECRETS_IDENTITY, or `msecrets identity use <source>`"}
+		err = &core.Error{Code: core.CodeIdentitySource, Message: "No msecrets identity found. Create one with `msecrets identity new`, or point to one with --identity, MSECRETS_IDENTITY, or `msecrets identity use <source>`; password members set MSECRETS_PASSPHRASE or run msecrets in a terminal"}
 	}
 	return identities, err
 }
